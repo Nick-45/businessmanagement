@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi-Business Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* minor custom styles */
+    .sidebar { min-width: 260px; }
+    .sidebar .business-pill.active { background: rgba(255,255,255,0.06); }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+<!-- ====== App (Single File SPA) ====== -->
+<div id="app" class="min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar bg-slate-800 text-white p-4 hidden md:block">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center font-bold">NB</div>
+      <div>
+        <div id="app-username" class="text-sm font-semibold">Guest</div>
+        <div class="text-xs text-slate-300">Multi-business manager</div>
+      </div>
+    </div>
+
+    <nav class="space-y-2">
+      <button data-route="#/dashboard" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">Main Dashboard</button>
+      <div class="mt-4 px-3 text-xs text-slate-400">Businesses</div>
+      <div id="business-list" class="mt-2 space-y-2">
+        <!-- business pills injected here -->
+      </div>
+      <div class="mt-4 px-3 text-xs text-slate-400">Utilities</div>
+      <button id="btn-suppliers" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">All Suppliers</button>
+      <button id="btn-logout" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">Logout</button>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 p-6">
+    <!-- Top bar for mobile / quick actions -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-3">
+        <button id="mobile-open" class="md:hidden p-2 bg-slate-700 text-white rounded">☰</button>
+        <h1 id="page-title" class="text-2xl font-bold">Main Dashboard</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="current-date" class="text-sm text-slate-600"></div>
+        <div class="p-2 bg-white rounded shadow">Logged in</div>
+      </div>
+    </div>
+
+    <!-- Content area (routes) -->
+    <section id="route-outlet">
+      <!-- Main dashboard view -->
+      <div id="view-dashboard">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <!-- Overview cards for each business -->
+          <template id="overview-card-template">
+            <div class="p-4 rounded-lg shadow bg-white">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs text-slate-400">BUSINESS</div>
+                  <div class="text-lg font-semibold">Business Name</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm text-slate-500">Income</div>
+                  <div class="text-xl font-bold">KES 0</div>
+                </div>
+              </div>
+              <div class="mt-3 text-sm text-slate-500">Profit: KES 0 • Loss: KES 0</div>
+              <div class="mt-3 flex gap-2">
+                <button class="btn-manage px-3 py-1 bg-indigo-600 text-white rounded">Manage</button>
+                <button class="btn-view-report px-3 py-1 border rounded">View Report</button>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Overall charts and comparisons -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white p-4 rounded shadow">
+            <h3 class="font-semibold mb-2">Income - Monthly (This Year vs Last Year)</h3>
+            <canvas id="chart-income-monthly" height="180"></canvas>
+          </div>
+          <div class="bg-white p-4 rounded shadow">
+            <h3 class="font-semibold mb-2">Daily Comparison (Today vs Same Day Last Year)</h3>
+            <canvas id="chart-daily" height="180"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Business dashboard view -->
+      <div id="view-business" class="hidden">
+        <div class="mb-4 flex items-center justify-between">
+          <div>
+            <div class="text-sm text-slate-500" id="biz-name-small">Business</div>
+            <h2 id="biz-name" class="text-2xl font-bold">Business Dashboard</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="range-select" class="px-3 py-2 border rounded">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+            <button id="btn-back-main" class="px-3 py-2 border rounded">Back</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div class="p-4 rounded shadow bg-white">
+            <div class="text-xs text-slate-400">Total Income</div>
+            <div id="biz-income" class="text-2xl font-bold">KES 0</div>
+          </div>
+          <div class="p-4 rounded shadow bg-white">
+            <div class="text-xs text-slate-400">Profit</div>
+            <div id="biz-profit" class="text-2xl font-bold">KES 0</div>
+          </div>
+          <div class="p-4 rounded shadow bg-white">
+            <div class="text-xs text-slate-400">Loss</div>
+            <div id="biz-loss" class="text-2xl font-bold">KES 0</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <div class="bg-white p-4 rounded shadow">
+            <h4 class="font-semibold mb-2">Sales Timeline</h4>
+            <canvas id="chart-biz-timeline" height="180"></canvas>
+          </div>
+          <div class="bg-white p-4 rounded shadow">
+            <h4 class="font-semibold mb-2">Suppliers</h4>
+            <div id="supplier-list" class="space-y-2 max-h-72 overflow-auto p-2">
+              <!-- suppliers injected here -->
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded shadow">
+          <h4 class="font-semibold mb-2">Transactions</h4>
+          <div class="overflow-auto">
+            <table class="w-full text-sm" id="transactions-table">
+              <thead class="text-slate-500 text-left">
+                <tr><th>Date</th><th>Type</th><th>Amount</th><th>Category</th><th>Notes</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Suppliers view -->
+      <div id="view-suppliers" class="hidden">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-xl font-bold">All Suppliers</h2>
+          <button id="btn-add-supplier" class="px-3 py-2 bg-indigo-600 text-white rounded">Add Supplier</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white p-4 rounded shadow">
+            <h4 class="font-semibold mb-2">Create Supplier</h4>
+            <div class="space-y-2">
+              <input id="sup-name" placeholder="Name" class="w-full px-3 py-2 border rounded" />
+              <input id="sup-contact" placeholder="Contact" class="w-full px-3 py-2 border rounded" />
+              <select id="sup-business" class="w-full px-3 py-2 border rounded">
+                <option value="toplink">TOPLINK SOLUTIONS</option>
+                <option value="benick">BENICK ACCESSORIES</option>
+                <option value="kim">KIM MELONS</option>
+              </select>
+              <button id="save-supplier" class="px-3 py-2 bg-green-600 text-white rounded">Save</button>
+            </div>
+          </div>
+          <div class="bg-white p-4 rounded shadow">
+            <h4 class="font-semibold mb-2">Supplier Directory</h4>
+            <div id="all-suppliers" class="space-y-2 max-h-96 overflow-auto p-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auth view (shown as modal or full-screen on small devices) -->
+      <div id="view-auth" class="hidden">
+        <div class="max-w-md mx-auto mt-8 bg-white p-6 rounded shadow">
+          <h3 class="text-xl font-bold mb-4">Sign in to continue</h3>
+          <input id="auth-email" type="email" placeholder="Email" class="w-full px-3 py-2 border rounded mb-2">
+          <input id="auth-password" type="password" placeholder="Password" class="w-full px-3 py-2 border rounded mb-2">
+          <div class="flex gap-2">
+            <button id="btn-signin" class="px-3 py-2 bg-indigo-600 text-white rounded">Sign In</button>
+            <button id="btn-signup" class="px-3 py-2 border rounded">Sign Up</button>
+          </div>
+          <div id="auth-msg" class="text-sm text-red-500 mt-2"></div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ====== Scripts (App logic) ====== -->
+<script>
+/*
+  IMPORTANT: Replace the placeholders below with your Supabase project's values.
+  - SUPABASE_URL: your project's API URL
+  - SUPABASE_ANON_KEY: public anon key (or service role for server tasks) -- keep secure
+*/
+const SUPABASE_URL = 'https://getpshffamiwdgdcpskm.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdldHBzaGZmYW1pd2RnZGNwc2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0ODc2MDksImV4cCI6MjA3NTA2MzYwOX0.X6jCmOMC9TsVCNMshBIq3AAgnudKgs5iff9Ao3FugTw'
+
+const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+// Basic app state
+const state = {
+  user: null,
+  businesses: [
+    { id: 'toplink', name: 'TOPLINK SOLUTIONS' },
+    { id: 'benick', name: 'BENICK ACCESSORIES' },
+    { id: 'kim', name: 'KIM MELONS' }
+  ],
+  currentBusiness: null,
+  transactions: [] // cached transactions
+}
+
+// Utility: format KES
+function fmtKES(n){ return 'KES ' + (Number(n)||0).toLocaleString() }
+
+// DOM helpers
+const $ = sel => document.querySelector(sel)
+const $$ = sel => Array.from(document.querySelectorAll(sel))
+
+// Initialize UI
+function initUI(){
+  // date
+  $('#current-date').textContent = new Date().toLocaleString()
+  // populate businesses in sidebar
+  const list = $('#business-list')
+  list.innerHTML = ''
+  state.businesses.forEach(b=>{
+    const div = document.createElement('div')
+    div.className = 'business-pill flex items-center justify-between px-3 py-2 rounded hover:bg-slate-700 cursor-pointer'
+    div.innerHTML = `<div>${b.name}</div><div class='text-xs text-slate-400'>Manage</div>`
+    div.onclick = ()=>{ navigateToBusiness(b.id) }
+    list.appendChild(div)
+  })
+
+  // route buttons
+  $$('[data-route]').forEach(btn=> btn.onclick = e => navigate(btn.getAttribute('data-route')))
+  $('#btn-suppliers').onclick = ()=> showView('view-suppliers')
+  $('#btn-logout').onclick = signOut
+  $('#btn-back-main').onclick = ()=>{ showMainDashboard() }
+  $('#mobile-open').onclick = ()=>{ document.getElementById('sidebar').classList.toggle('hidden') }
+
+  // auth
+  $('#btn-signin').onclick = signIn
+  $('#btn-signup').onclick = signUp
+
+  // suppliers
+  $('#save-supplier').onclick = saveSupplier
+  $('#btn-add-supplier').onclick = ()=>{ window.location.hash = '#/suppliers'; showView('view-suppliers') }
+
+  // handle nav on load
+  window.addEventListener('hashchange', routeHandler)
+  routeHandler()
+
+  // auth state listener
+  supabase.auth.onAuthStateChange((event, session) => {
+    state.user = session?.user || null
+    updateAuthUI()
+    if(state.user) loadInitialData()
+  })
+}
+
+// Routing
+function routeHandler(){
+  const h = location.hash || '#/dashboard'
+  if(h.startsWith('#/business/')){
+    const id = h.split('/')[2]
+    navigateToBusiness(id)
+  } else if(h === '#/suppliers'){
+    showView('view-suppliers')
+  } else if(h === '#/auth'){
+    showView('view-auth')
+  } else {
+    showMainDashboard()
+  }
+}
+
+function navigate(hash){ location.hash = hash }
+
+function showView(id){
+  ['view-dashboard','view-business','view-suppliers','view-auth'].forEach(v=> {
+    document.getElementById(v).classList.toggle('hidden', v!==id)
+  })
+  $('#page-title').textContent = (id === 'view-dashboard') ? 'Main Dashboard' : (id === 'view-business') ? 'Business Dashboard' : (id === 'view-suppliers') ? 'Suppliers' : 'Sign In'
+}
+
+function showMainDashboard(){
+  state.currentBusiness = null
+  $('#biz-name').textContent = ''
+  $('#biz-name-small').textContent = ''
+  showView('view-dashboard')
+  renderOverviewCards()
+  renderOverallCharts()
+}
+
+function navigateToBusiness(bizId){
+  state.currentBusiness = state.businesses.find(b=>b.id === bizId)
+  if(!state.currentBusiness) return
+  $('#biz-name').textContent = state.currentBusiness.name
+  $('#biz-name-small').textContent = state.currentBusiness.name
+  showView('view-business')
+  loadBusinessData(bizId)
+}
+
+// Auth functions
+async function signIn(){
+  const email = $('#auth-email').value
+  const password = $('#auth-password').value
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if(error) { $('#auth-msg').textContent = error.message; return }
+  $('#auth-msg').textContent = 'Signed in'
+  updateAuthUI()
+}
+async function signUp(){
+  const email = $('#auth-email').value
+  const password = $('#auth-password').value
+  const { data, error } = await supabase.auth.signUp({ email, password })
+  if(error){ $('#auth-msg').textContent = error.message; return }
+  $('#auth-msg').textContent = 'Check your email to confirm sign up.'
+}
+async function signOut(){ await supabase.auth.signOut(); state.user = null; updateAuthUI(); showView('view-auth') }
+
+function updateAuthUI(){
+  const user = supabase.auth.getUser().then(r=>r.data.user).catch(()=>null)
+  supabase.auth.getUser().then(res=>{
+    const u = res.data.user
+    state.user = u
+    $('#app-username').textContent = u?.email || 'Guest'
+    if(u){ showMainDashboard() } else { showView('view-auth') }
+  })
+}
+
+// Data layer helpers (Supabase queries)
+// Tables expected: businesses (id, name), suppliers (id, business_id, name, contact), transactions(id,business_id, date, amount, type('income'|'expense'), category, notes)
+
+async function loadInitialData(){
+  // try to fetch transactions for the three businesses
+  const { data, error } = await supabase.from('transactions').select('*')
+  if(error) console.warn('Could not fetch transactions:', error.message)
+  else state.transactions = data || []
+  renderOverviewCards()
+  renderOverallCharts()
+}
+
+async function loadBusinessData(bizId){
+  // load suppliers
+  const { data: suppliers } = await supabase.from('suppliers').select('*').eq('business_id', bizId)
+  renderSuppliers(suppliers || [])
+  // load transactions for business
+  const { data: tx } = await supabase.from('transactions').select('*').eq('business_id', bizId).order('date', { ascending: false })
+  state.transactions = tx || []
+  renderBusinessMetrics()
+}
+
+async function saveSupplier(){
+  const name = $('#sup-name').value.trim()
+  const contact = $('#sup-contact').value.trim()
+  const business = $('#sup-business').value
+  if(!name) return alert('Enter supplier name')
+  const { data, error } = await supabase.from('suppliers').insert([{ name, contact, business_id: business }])
+  if(error) return alert('Error saving supplier: ' + error.message)
+  $('#sup-name').value=''; $('#sup-contact').value=''
+  loadInitialData(); loadBusinessData(state.currentBusiness?.id || business)
+}
+
+// Rendering helpers
+function renderOverviewCards(){
+  const container = document.querySelector('#view-dashboard .grid')
+  container.innerHTML = ''
+  state.businesses.forEach(b=>{
+    const tpl = document.getElementById('overview-card-template')
+    const el = tpl.content.cloneNode(true)
+    el.querySelector('.text-lg').textContent = b.name
+    // compute totals for business
+    const income = sumTransactions(b.id, 'income')
+    const expenses = sumTransactions(b.id, 'expense')
+    const profit = income - expenses
+    el.querySelector('.text-xl').textContent = fmtKES(income)
+    el.querySelector('.mt-3').textContent = `Profit: ${fmtKES(profit)} • Loss: ${fmtKES(Math.max(0,-profit))}`
+    el.querySelector('.btn-manage').onclick = ()=>{ navigateToBusiness(b.id) }
+    el.querySelector('.btn-view-report').onclick = ()=>{ navigate('#/business/'+b.id); }
+    container.appendChild(el)
+  })
+}
+
+function sumTransactions(bizId, type){
+  const tx = state.transactions.filter(t => t.business_id === bizId || state.currentBusiness == null)
+  // if state.transactions is global and loaded with all tx, filter by business
+  const filtered = (state.transactions && state.transactions.length>0) ? state.transactions.filter(t=>t.business_id === bizId && t.type === type) : []
+  return filtered.reduce((s,t)=> s + Number(t.amount||0), 0)
+}
+
+function renderOverallCharts(){
+  // monthly income this year vs last year
+  const now = new Date()
+  const thisYear = now.getFullYear()
+  const labels = Array.from({length:12}, (_,i)=> new Date(thisYear, i, 1).toLocaleString(undefined,{month:'short'}))
+  // prepare dataset zeros
+  const dataThis = new Array(12).fill(0)
+  const dataLast = new Array(12).fill(0)
+  (state.transactions||[]).forEach(t=>{
+    const d = new Date(t.date)
+    const y = d.getFullYear()
+    const m = d.getMonth()
+    if(t.type==='income'){
+      if(y===thisYear) dataThis[m]+= Number(t.amount||0)
+      if(y===thisYear-1) dataLast[m]+= Number(t.amount||0)
+    }
+  })
+  renderChart('chart-income-monthly', labels, [dataThis, dataLast], ['This Year','Last Year'])
+
+  // daily comparison: today vs same day last year
+  const labelsDay = ['Previous Year','Today']
+  const prevDaySum = sumForDateOffset(0, true)
+  const todaySum = sumForDateOffset(0, false)
+  renderBar('chart-daily', labelsDay, [prevDaySum, todaySum])
+}
+
+function sumForDateOffset(offsetDays, usePrevYear){
+  // offsetDays from today (0 = today). If usePrevYear true, shift by -1 year
+  const base = new Date()
+  base.setDate(base.getDate() - offsetDays)
+  if(usePrevYear) base.setFullYear(base.getFullYear() - 1)
+  const y = base.getFullYear()
+  const m = base.getMonth()
+  const d = base.getDate()
+  return (state.transactions||[]).filter(t=>{
+    const dt = new Date(t.date)
+    return dt.getFullYear()===y && dt.getMonth()===m && dt.getDate()===d && t.type==='income'
+  }).reduce((s,t)=> s + Number(t.amount||0), 0)
+}
+
+function renderChart(elId, labels, datasetsData, datasetLabels){
+  const ctx = document.getElementById(elId).getContext('2d')
+  if(window[elId]) window[elId].destroy()
+  const datasets = datasetsData.map((d,i)=>({ label: datasetLabels[i]||('Series '+i), data: d, fill:false }))
+  window[elId] = new Chart(ctx, { type:'line', data:{ labels, datasets }, options:{ responsive:true } })
+}
+function renderBar(elId, labels, data){
+  const ctx = document.getElementById(elId).getContext('2d')
+  if(window[elId]) window[elId].destroy()
+  window[elId] = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Income', data }] }, options:{ responsive:true } })
+}
+
+function renderSuppliers(suppliers){
+  const el = $('#supplier-list')
+  el.innerHTML = ''
+  suppliers.forEach(s=>{
+    const d = document.createElement('div')
+    d.className = 'p-2 border rounded flex justify-between items-center'
+    d.innerHTML = `<div><div class='font-semibold'>${s.name}</div><div class='text-xs text-slate-500'>${s.contact||''}</div></div><div class='text-slate-400 text-xs'>ID:${s.id}</div>`
+    el.appendChild(d)
+  })
+}
+
+function renderBusinessMetrics(){
+  const biz = state.currentBusiness
+  const txs = state.transactions.filter(t=>t.business_id === biz.id)
+  const income = txs.filter(t=>t.type==='income').reduce((s,t)=> s + Number(t.amount||0), 0)
+  const expense = txs.filter(t=>t.type==='expense').reduce((s,t)=> s + Number(t.amount||0), 0)
+  const profit = income - expense
+  $('#biz-income').textContent = fmtKES(income)
+  $('#biz-profit').textContent = fmtKES(profit)
+  $('#biz-loss').textContent = fmtKES(Math.max(0,-profit))
+
+  // transactions table
+  const tbody = document.querySelector('#transactions-table tbody')
+  tbody.innerHTML = ''
+  txs.forEach(t=>{
+    const tr = document.createElement('tr')
+    tr.innerHTML = `<td>${new Date(t.date).toLocaleString()}</td><td>${t.type}</td><td>${fmtKES(t.amount)}</td><td>${t.category||''}</td><td>${t.notes||''}</td>`
+    tbody.appendChild(tr)
+  })
+
+  // timeline chart
+  const grouped = groupByDate(txs)
+  const labels = Object.keys(grouped).slice(0,30).reverse()
+  const data = labels.map(l => grouped[l].reduce((s,x)=> s + Number(x.amount||0), 0))
+  renderChart('chart-biz-timeline', labels, [data], ['Amount'])
+}
+
+function groupByDate(txs){
+  const g = {}
+  txs.forEach(t=>{
+    const d = new Date(t.date)
+    const key = d.toISOString().slice(0,10)
+    if(!g[key]) g[key] = []
+    g[key].push(t)
+  })
+  return g
+}
+
+// Initialize app
+initUI()
+
+</script>
+</body>
+</html>
