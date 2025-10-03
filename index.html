@@ -1,511 +1,724 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Multi-Business Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Load Supabase client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    /* minor custom styles */
-    .sidebar { min-width: 260px; }
-    .sidebar .business-pill.active { background: rgba(255,255,255,0.06); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Manager | TOPLINK SOLUTIONS, BENICK ACCESSORIES, KIM MELONS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/supabase@2"></script>
+    <style>
+        .sidebar-link.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .sidebar-link:hover:not(.active) {
+            background-color: #f3f4f6;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .card-hover {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
 </head>
-<body class="bg-gray-100 text-gray-900">
-
-<!-- ====== App (Single File SPA) ====== -->
-<div id="app" class="min-h-screen flex">
-
-  <!-- Sidebar -->
-  <aside id="sidebar" class="sidebar bg-slate-800 text-white p-4 hidden md:block">
-    <div class="flex items-center gap-3 mb-6">
-      <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center font-bold">NB</div>
-      <div>
-        <div id="app-username" class="text-sm font-semibold">Guest</div>
-        <div class="text-xs text-slate-300">Multi-business manager</div>
-      </div>
+<body class="bg-gray-50">
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800">Business Manager</h1>
+                <p class="text-gray-600 mt-2">Manage all your businesses in one place</p>
+            </div>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+                        Email
+                    </label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="email" type="email" placeholder="Email" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                        Password
+                    </label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" id="password" type="password" placeholder="Password" required>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full" type="submit">
+                        Sign In
+                    </button>
+                </div>
+            </form>
+            <div class="mt-6 text-center text-sm text-gray-600">
+                <p>Demo: Use any email and password to login</p>
+            </div>
+        </div>
     </div>
 
-    <nav class="space-y-2">
-      <button data-route="#/dashboard" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">Main Dashboard</button>
-      <div class="mt-4 px-3 text-xs text-slate-400">Businesses</div>
-      <div id="business-list" class="mt-2 space-y-2">
-        <!-- business pills injected here -->
-      </div>
-      <div class="mt-4 px-3 text-xs text-slate-400">Utilities</div>
-      <button id="btn-suppliers" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">All Suppliers</button>
-      <button id="btn-logout" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">Logout</button>
-    </nav>
-  </aside>
+    <!-- Main App (initially hidden) -->
+    <div id="app" class="hidden">
+        <!-- Sidebar -->
+        <div class="fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-10">
+            <div class="p-4 border-b">
+                <h1 class="text-xl font-bold text-gray-800">Business Manager</h1>
+                <p class="text-sm text-gray-600">Welcome back!</p>
+            </div>
+            <div class="p-4">
+                <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Dashboard</h2>
+                <ul>
+                    <li>
+                        <a href="#" class="sidebar-link block py-2 px-4 rounded mb-1 text-gray-700" data-page="main-dashboard">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Overall Dashboard
+                        </a>
+                    </li>
+                </ul>
+                
+                <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">Businesses</h2>
+                <ul>
+                    <li>
+                        <a href="#" class="sidebar-link block py-2 px-4 rounded mb-1 text-gray-700" data-page="toplink-dashboard">
+                            <i class="fas fa-building mr-2"></i>TOPLINK SOLUTIONS
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link block py-2 px-4 rounded mb-1 text-gray-700" data-page="benick-dashboard">
+                            <i class="fas fa-store mr-2"></i>BENICK ACCESSORIES
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link block py-2 px-4 rounded mb-1 text-gray-700" data-page="kim-dashboard">
+                            <i class="fas fa-seedling mr-2"></i>KIM MELONS
+                        </a>
+                    </li>
+                </ul>
+                
+                <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">Account</h2>
+                <ul>
+                    <li>
+                        <a href="#" class="sidebar-link block py-2 px-4 rounded mb-1 text-gray-700" data-page="profile">
+                            <i class="fas fa-user mr-2"></i>Profile
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="logout-btn" class="block py-2 px-4 rounded mb-1 text-gray-700 hover:bg-red-50 hover:text-red-600">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
 
-  <!-- Main content -->
-  <main class="flex-1 p-6">
-    <!-- Top bar for mobile / quick actions -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-3">
-        <button id="mobile-open" class="md:hidden p-2 bg-slate-700 text-white rounded">☰</button>
-        <h1 id="page-title" class="text-2xl font-bold">Main Dashboard</h1>
-      </div>
-      <div class="flex items-center gap-3">
-        <div id="current-date" class="text-sm text-slate-600"></div>
-        <div class="p-2 bg-white rounded shadow">Logged in</div>
-      </div>
+        <!-- Main Content -->
+        <div class="ml-64 p-6">
+            <!-- Page Content will be dynamically loaded here -->
+            <div id="page-content" class="fade-in">
+                <!-- Main Dashboard will be loaded by default -->
+            </div>
+        </div>
     </div>
 
-    <!-- Content area (routes) -->
-    <section id="route-outlet">
-      <!-- Main dashboard view -->
-      <div id="view-dashboard">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <!-- Overview cards for each business -->
-          <template id="overview-card-template">
-            <div class="p-4 rounded-lg shadow bg-white">
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="text-xs text-slate-400">BUSINESS</div>
-                  <div class="text-lg font-semibold">Business Name</div>
+    <script>
+        // Initialize Supabase (replace with your actual Supabase URL and key)
+        const supabaseUrl = 'https://your-project.supabase.co';
+        const supabaseKey = 'your-supabase-key';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // DOM Elements
+        const loginScreen = document.getElementById('login-screen');
+        const app = document.getElementById('app');
+        const loginForm = document.getElementById('login-form');
+        const logoutBtn = document.getElementById('logout-btn');
+        const pageContent = document.getElementById('page-content');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+        // Sample data for demonstration
+        const businessData = {
+            'toplink': {
+                name: 'TOPLINK SOLUTIONS',
+                color: 'blue',
+                income: 125000,
+                profit: 45000,
+                losses: 8000,
+                suppliers: [
+                    { name: 'Global Tech Inc', contact: 'john@globaltech.com', rating: 4.5 },
+                    { name: 'Component World', contact: 'sarah@compworld.com', rating: 4.2 },
+                    { name: 'Digital Solutions', contact: 'mike@digisolutions.com', rating: 4.7 }
+                ]
+            },
+            'benick': {
+                name: 'BENICK ACCESSORIES',
+                color: 'green',
+                income: 85000,
+                profit: 32000,
+                losses: 5300,
+                suppliers: [
+                    { name: 'Fashion Trends Ltd', contact: 'lisa@fashiontrends.com', rating: 4.3 },
+                    { name: 'Style Makers', contact: 'david@stylemakers.com', rating: 4.0 },
+                    { name: 'Accessory World', contact: 'emma@accessoryworld.com', rating: 4.6 }
+                ]
+            },
+            'kim': {
+                name: 'KIM MELONS',
+                color: 'purple',
+                income: 65000,
+                profit: 28000,
+                losses: 4200,
+                suppliers: [
+                    { name: 'Fresh Farms Co', contact: 'tom@freshfarms.com', rating: 4.8 },
+                    { name: 'Organic Harvest', contact: 'susan@organicharvest.com', rating: 4.4 },
+                    { name: 'Local Growers', contact: 'robert@localgrowers.com', rating: 4.1 }
+                ]
+            }
+        };
+
+        // Login handler
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            // In a real app, you would authenticate with Supabase here
+            // For demo purposes, we'll just show the app
+            loginScreen.classList.add('hidden');
+            app.classList.remove('hidden');
+            loadPage('main-dashboard');
+        });
+
+        // Logout handler
+        logoutBtn.addEventListener('click', () => {
+            app.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+        });
+
+        // Sidebar navigation
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = link.getAttribute('data-page');
+                
+                // Update active state
+                sidebarLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                
+                loadPage(page);
+            });
+        });
+
+        // Page loading function
+        function loadPage(page) {
+            pageContent.innerHTML = '';
+            pageContent.classList.remove('fade-in');
+            
+            setTimeout(() => {
+                pageContent.classList.add('fade-in');
+                
+                switch(page) {
+                    case 'main-dashboard':
+                        loadMainDashboard();
+                        break;
+                    case 'toplink-dashboard':
+                        loadBusinessDashboard('toplink');
+                        break;
+                    case 'benick-dashboard':
+                        loadBusinessDashboard('benick');
+                        break;
+                    case 'kim-dashboard':
+                        loadBusinessDashboard('kim');
+                        break;
+                    case 'profile':
+                        loadProfilePage();
+                        break;
+                    default:
+                        loadMainDashboard();
+                }
+            }, 10);
+        }
+
+        // Load main dashboard
+        function loadMainDashboard() {
+            pageContent.innerHTML = `
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">Overall Business Dashboard</h1>
+                    <p class="text-gray-600">Summary of all your businesses</p>
                 </div>
-                <div class="text-right">
-                  <div class="text-sm text-slate-500">Income</div>
-                  <div class="text-xl font-bold">KES 0</div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700">TOPLINK SOLUTIONS</h3>
+                                <p class="text-2xl font-bold text-blue-600 mt-2">$${businessData.toplink.income.toLocaleString()}</p>
+                                <p class="text-green-500 mt-1">Profit: $${businessData.toplink.profit.toLocaleString()}</p>
+                                <p class="text-red-500 mt-1">Losses: $${businessData.toplink.losses.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-blue-100 p-3 rounded-full">
+                                <i class="fas fa-building text-blue-500 text-xl"></i>
+                            </div>
+                        </div>
+                        <button class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition duration-200 view-business-btn" data-business="toplink">
+                            View Details
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700">BENICK ACCESSORIES</h3>
+                                <p class="text-2xl font-bold text-green-600 mt-2">$${businessData.benick.income.toLocaleString()}</p>
+                                <p class="text-green-500 mt-1">Profit: $${businessData.benick.profit.toLocaleString()}</p>
+                                <p class="text-red-500 mt-1">Losses: $${businessData.benick.losses.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-green-100 p-3 rounded-full">
+                                <i class="fas fa-store text-green-500 text-xl"></i>
+                            </div>
+                        </div>
+                        <button class="mt-4 w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition duration-200 view-business-btn" data-business="benick">
+                            View Details
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700">KIM MELONS</h3>
+                                <p class="text-2xl font-bold text-purple-600 mt-2">$${businessData.kim.income.toLocaleString()}</p>
+                                <p class="text-green-500 mt-1">Profit: $${businessData.kim.profit.toLocaleString()}</p>
+                                <p class="text-red-500 mt-1">Losses: $${businessData.kim.losses.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-purple-100 p-3 rounded-full">
+                                <i class="fas fa-seedling text-purple-500 text-xl"></i>
+                            </div>
+                        </div>
+                        <button class="mt-4 w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg transition duration-200 view-business-btn" data-business="kim">
+                            View Details
+                        </button>
+                    </div>
                 </div>
-              </div>
-              <div class="mt-3 text-sm text-slate-500">Profit: KES 0 • Loss: KES 0</div>
-              <div class="mt-3 flex gap-2">
-                <button class="btn-manage px-3 py-1 bg-indigo-600 text-white rounded">Manage</button>
-                <button class="btn-view-report px-3 py-1 border rounded">View Report</button>
-              </div>
-            </div>
-          </template>
-        </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Financial Overview</h2>
+                    <div class="h-80">
+                        <canvas id="overviewChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Activity</h2>
+                        <ul class="space-y-4">
+                            <li class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-full mr-3">
+                                    <i class="fas fa-money-bill-wave text-blue-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Payment received from Client A</p>
+                                    <p class="text-sm text-gray-500">2 hours ago • TOPLINK SOLUTIONS</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center">
+                                <div class="bg-green-100 p-2 rounded-full mr-3">
+                                    <i class="fas fa-shipping-fast text-green-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium">New inventory arrived</p>
+                                    <p class="text-sm text-gray-500">5 hours ago • BENICK ACCESSORIES</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center">
+                                <div class="bg-purple-100 p-2 rounded-full mr-3">
+                                    <i class="fas fa-seedling text-purple-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Harvest completed for season</p>
+                                    <p class="text-sm text-gray-500">1 day ago • KIM MELONS</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button class="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center">
+                                <i class="fas fa-plus text-xl mb-2"></i>
+                                <span>Add Record</span>
+                            </button>
+                            <button class="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center">
+                                <i class="fas fa-chart-bar text-xl mb-2"></i>
+                                <span>Generate Report</span>
+                            </button>
+                            <button class="bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center">
+                                <i class="fas fa-users text-xl mb-2"></i>
+                                <span>Manage Suppliers</span>
+                            </button>
+                            <button class="bg-indigo-500 hover:bg-indigo-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center">
+                                <i class="fas fa-cog text-xl mb-2"></i>
+                                <span>Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listeners to business buttons
+            document.querySelectorAll('.view-business-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const business = btn.getAttribute('data-business');
+                    loadBusinessDashboard(business);
+                    
+                    // Update sidebar active state
+                    sidebarLinks.forEach(l => l.classList.remove('active'));
+                    document.querySelector(`[data-page="${business}-dashboard"]`).classList.add('active');
+                });
+            });
+            
+            // Render charts
+            renderOverviewChart();
+        }
 
-        <!-- Overall charts and comparisons -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div class="bg-white p-4 rounded shadow">
-            <h3 class="font-semibold mb-2">Income - Monthly (This Year vs Last Year)</h3>
-            <canvas id="chart-income-monthly" height="180"></canvas>
-          </div>
-          <div class="bg-white p-4 rounded shadow">
-            <h3 class="font-semibold mb-2">Daily Comparison (Today vs Same Day Last Year)</h3>
-            <canvas id="chart-daily" height="180"></canvas>
-          </div>
-        </div>
+        // Load business dashboard
+        function loadBusinessDashboard(business) {
+            const biz = businessData[business];
+            const colorClass = `text-${biz.color}-600`;
+            const bgColorClass = `bg-${biz.color}-100`;
+            const borderColorClass = `border-${biz.color}-500`;
+            
+            pageContent.innerHTML = `
+                <div class="mb-8">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-800">${biz.name} Dashboard</h1>
+                            <p class="text-gray-600">Detailed overview and management</p>
+                        </div>
+                        <div class="flex space-x-4">
+                            <button class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg transition duration-200">
+                                <i class="fas fa-download mr-2"></i>Export
+                            </button>
+                            <button class="bg-${biz.color}-500 hover:bg-${biz.color}-600 text-white py-2 px-4 rounded-lg transition duration-200">
+                                <i class="fas fa-plus mr-2"></i>Add Record
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-gray-500">Total Income</p>
+                                <p class="text-2xl font-bold ${colorClass}">$${biz.income.toLocaleString()}</p>
+                            </div>
+                            <div class="${bgColorClass} p-3 rounded-full">
+                                <i class="fas fa-money-bill-wave ${colorClass} text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i> 12% from last month</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-gray-500">Net Profit</p>
+                                <p class="text-2xl font-bold text-green-600">$${biz.profit.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-green-100 p-3 rounded-full">
+                                <i class="fas fa-chart-line text-green-500 text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i> 8% from last month</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-gray-500">Losses</p>
+                                <p class="text-2xl font-bold text-red-600">$${biz.losses.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-red-100 p-3 rounded-full">
+                                <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-red-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i> 3% from last month</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-gray-500">Suppliers</p>
+                                <p class="text-2xl font-bold text-indigo-600">${biz.suppliers.length}</p>
+                            </div>
+                            <div class="bg-indigo-100 p-3 rounded-full">
+                                <i class="fas fa-truck text-indigo-500 text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-gray-500 text-sm mt-2">Active suppliers</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Financial Performance</h2>
+                        <div class="h-80">
+                            <canvas id="businessChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Supplier List</h2>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${biz.suppliers.map(supplier => `
+                                        <tr>
+                                            <td class="px-4 py-3 whitespace-nowrap">
+                                                <div class="font-medium text-gray-900">${supplier.name}</div>
+                                            </td>
+                                            <td class="px-4 py-3 whitespace-nowrap text-gray-500">${supplier.contact}</td>
+                                            <td class="px-4 py-3 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="text-yellow-400 mr-1">
+                                                        <i class="fas fa-star"></i>
+                                                    </div>
+                                                    <span>${supplier.rating}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                                <button class="text-${biz.color}-600 hover:text-${biz.color}-900 mr-3">Edit</button>
+                                                <button class="text-red-600 hover:text-red-900">Delete</button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="mt-4 bg-${biz.color}-500 hover:bg-${biz.color}-600 text-white py-2 px-4 rounded-lg transition duration-200">
+                            <i class="fas fa-plus mr-2"></i>Add New Supplier
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Comparison Reports</h2>
+                    <div class="flex space-x-4 mb-6">
+                        <button class="bg-${biz.color}-500 text-white py-2 px-4 rounded-lg">Daily</button>
+                        <button class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg">Weekly</button>
+                        <button class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg">Monthly</button>
+                    </div>
+                    <div class="h-80">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+            `;
+            
+            // Render charts
+            renderBusinessChart(business);
+            renderComparisonChart(business);
+        }
 
-      </div>
+        // Load profile page
+        function loadProfilePage() {
+            pageContent.innerHTML = `
+                <div class="max-w-2xl mx-auto">
+                    <div class="mb-8">
+                        <h1 class="text-3xl font-bold text-gray-800">Account Profile</h1>
+                        <p class="text-gray-600">Manage your account settings</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Personal Information</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="firstName">First Name</label>
+                                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="firstName" type="text" value="Stella">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="lastName">Last Name</label>
+                                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="lastName" type="text" value="Business">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="email">Email</label>
+                                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="email" type="email" value="stella@business.com">
+                            </div>
+                        </div>
+                        <button class="mt-6 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                            Save Changes
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Business Preferences</h2>
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <input id="notifications" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                                <label for="notifications" class="ml-2 block text-sm text-gray-700">Receive email notifications</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="reports" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                                <label for="reports" class="ml-2 block text-sm text-gray-700">Weekly performance reports</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="updates" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <label for="updates" class="ml-2 block text-sm text-gray-700">Product updates and news</label>
+                            </div>
+                        </div>
+                        <button class="mt-6 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                            Save Preferences
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
 
-      <!-- Business dashboard view -->
-      <div id="view-business" class="hidden">
-        <div class="mb-4 flex items-center justify-between">
-          <div>
-            <div class="text-sm text-slate-500" id="biz-name-small">Business</div>
-            <h2 id="biz-name" class="text-2xl font-bold">Business Dashboard</h2>
-          </div>
-          <div class="flex items-center gap-2">
-            <select id="range-select" class="px-3 py-2 border rounded">
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-            <button id="btn-back-main" class="px-3 py-2 border rounded">Back</button>
-          </div>
-        </div>
+        // Chart rendering functions
+        function renderOverviewChart() {
+            const ctx = document.getElementById('overviewChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [
+                        {
+                            label: 'TOPLINK SOLUTIONS',
+                            data: [12000, 19000, 15000, 25000, 22000, 30000],
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        },
+                        {
+                            label: 'BENICK ACCESSORIES',
+                            data: [8000, 12000, 10000, 15000, 18000, 20000],
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        },
+                        {
+                            label: 'KIM MELONS',
+                            data: [6000, 9000, 11000, 13000, 15000, 18000],
+                            backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div class="p-4 rounded shadow bg-white">
-            <div class="text-xs text-slate-400">Total Income</div>
-            <div id="biz-income" class="text-2xl font-bold">KES 0</div>
-          </div>
-          <div class="p-4 rounded shadow bg-white">
-            <div class="text-xs text-slate-400">Profit</div>
-            <div id="biz-profit" class="text-2xl font-bold">KES 0</div>
-          </div>
-          <div class="p-4 rounded shadow bg-white">
-            <div class="text-xs text-slate-400">Loss</div>
-            <div id="biz-loss" class="text-2xl font-bold">KES 0</div>
-          </div>
-        </div>
+        function renderBusinessChart(business) {
+            const ctx = document.getElementById('businessChart').getContext('2d');
+            const colors = {
+                toplink: 'rgba(59, 130, 246, 0.7)',
+                benick: 'rgba(16, 185, 129, 0.7)',
+                kim: 'rgba(139, 92, 246, 0.7)'
+            };
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: business === 'toplink' ? [12000, 19000, 15000, 25000, 22000, 30000] :
+                                  business === 'benick' ? [8000, 12000, 10000, 15000, 18000, 20000] :
+                                  [6000, 9000, 11000, 13000, 15000, 18000],
+                            borderColor: colors[business],
+                            backgroundColor: colors[business].replace('0.7', '0.1'),
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Profit',
+                            data: business === 'toplink' ? [8000, 12000, 10000, 15000, 13000, 18000] :
+                                  business === 'benick' ? [5000, 8000, 7000, 10000, 12000, 14000] :
+                                  [4000, 6000, 7000, 9000, 10000, 12000],
+                            borderColor: 'rgba(16, 185, 129, 0.7)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          <div class="bg-white p-4 rounded shadow">
-            <h4 class="font-semibold mb-2">Sales Timeline</h4>
-            <canvas id="chart-biz-timeline" height="180"></canvas>
-          </div>
-          <div class="bg-white p-4 rounded shadow">
-            <h4 class="font-semibold mb-2">Suppliers</h4>
-            <div id="supplier-list" class="space-y-2 max-h-72 overflow-auto p-2">
-              <!-- suppliers injected here -->
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white p-4 rounded shadow">
-          <h4 class="font-semibold mb-2">Transactions</h4>
-          <div class="overflow-auto">
-            <table class="w-full text-sm" id="transactions-table">
-              <thead class="text-slate-500 text-left">
-                <tr><th>Date</th><th>Type</th><th>Amount</th><th>Category</th><th>Notes</th></tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Suppliers view -->
-      <div id="view-suppliers" class="hidden">
-        <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-xl font-bold">All Suppliers</h2>
-          <button id="btn-add-supplier" class="px-3 py-2 bg-indigo-600 text-white rounded">Add Supplier</button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-white p-4 rounded shadow">
-            <h4 class="font-semibold mb-2">Create Supplier</h4>
-            <div class="space-y-2">
-              <input id="sup-name" placeholder="Name" class="w-full px-3 py-2 border rounded" />
-              <input id="sup-contact" placeholder="Contact" class="w-full px-3 py-2 border rounded" />
-              <select id="sup-business" class="w-full px-3 py-2 border rounded">
-                <option value="toplink">TOPLINK SOLUTIONS</option>
-                <option value="benick">BENICK ACCESSORIES</option>
-                <option value="kim">KIM MELONS</option>
-              </select>
-              <button id="save-supplier" class="px-3 py-2 bg-green-600 text-white rounded">Save</button>
-            </div>
-          </div>
-          <div class="bg-white p-4 rounded shadow">
-            <h4 class="font-semibold mb-2">Supplier Directory</h4>
-            <div id="all-suppliers" class="space-y-2 max-h-96 overflow-auto p-2"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Auth view (shown as modal or full-screen on small devices) -->
-      <div id="view-auth" class="hidden">
-        <div class="max-w-md mx-auto mt-8 bg-white p-6 rounded shadow">
-          <h3 class="text-xl font-bold mb-4">Sign in to continue</h3>
-          <input id="auth-email" type="email" placeholder="Email" class="w-full px-3 py-2 border rounded mb-2">
-          <input id="auth-password" type="password" placeholder="Password" class="w-full px-3 py-2 border rounded mb-2">
-          <div class="flex gap-2">
-            <button id="btn-signin" class="px-3 py-2 bg-indigo-600 text-white rounded">Sign In</button>
-            <button id="btn-signup" class="px-3 py-2 border rounded">Sign Up</button>
-          </div>
-          <div id="auth-msg" class="text-sm text-red-500 mt-2"></div>
-        </div>
-      </div>
-
-    </section>
-  </main>
-</div>
-
-<!-- ====== Scripts (App logic) ====== -->
-<script>
-/*
-  IMPORTANT: Replace the placeholders below with your Supabase project's values.
-  - SUPABASE_URL: your project's API URL
-  - SUPABASE_ANON_KEY: public anon key (or service role for server tasks) -- keep secure
-*/
-const SUPABASE_URL = 'https://getpshffamiwdgdcpskm.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdldHBzaGZmYW1pd2RnZGNwc2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0ODc2MDksImV4cCI6MjA3NTA2MzYwOX0.X6jCmOMC9TsVCNMshBIq3AAgnudKgs5iff9Ao3FugTw'
-
-const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-// Basic app state
-const state = {
-  user: null,
-  businesses: [
-    { id: 'toplink', name: 'TOPLINK SOLUTIONS' },
-    { id: 'benick', name: 'BENICK ACCESSORIES' },
-    { id: 'kim', name: 'KIM MELONS' }
-  ],
-  currentBusiness: null,
-  transactions: [] // cached transactions
-}
-
-// Utility: format KES
-function fmtKES(n){ return 'KES ' + (Number(n)||0).toLocaleString() }
-
-// DOM helpers
-const $ = sel => document.querySelector(sel)
-const $$ = sel => Array.from(document.querySelectorAll(sel))
-
-// Initialize UI
-function initUI(){
-  // date
-  $('#current-date').textContent = new Date().toLocaleString()
-  // populate businesses in sidebar
-  const list = $('#business-list')
-  list.innerHTML = ''
-  state.businesses.forEach(b=>{
-    const div = document.createElement('div')
-    div.className = 'business-pill flex items-center justify-between px-3 py-2 rounded hover:bg-slate-700 cursor-pointer'
-    div.innerHTML = `<div>${b.name}</div><div class='text-xs text-slate-400'>Manage</div>`
-    div.onclick = ()=>{ navigateToBusiness(b.id) }
-    list.appendChild(div)
-  })
-
-  // route buttons
-  $$('[data-route]').forEach(btn=> btn.onclick = e => navigate(btn.getAttribute('data-route')))
-  $('#btn-suppliers').onclick = ()=> showView('view-suppliers')
-  $('#btn-logout').onclick = signOut
-  $('#btn-back-main').onclick = ()=>{ showMainDashboard() }
-  $('#mobile-open').onclick = ()=>{ document.getElementById('sidebar').classList.toggle('hidden') }
-
-  // auth
-  $('#btn-signin').onclick = signIn
-  $('#btn-signup').onclick = signUp
-
-  // suppliers
-  $('#save-supplier').onclick = saveSupplier
-  $('#btn-add-supplier').onclick = ()=>{ window.location.hash = '#/suppliers'; showView('view-suppliers') }
-
-  // handle nav on load
-  window.addEventListener('hashchange', routeHandler)
-  routeHandler()
-
-  // auth state listener
-  supabase.auth.onAuthStateChange((event, session) => {
-    state.user = session?.user || null
-    updateAuthUI()
-    if(state.user) loadInitialData()
-  })
-}
-
-// Routing
-function routeHandler(){
-  const h = location.hash || '#/dashboard'
-  if(h.startsWith('#/business/')){
-    const id = h.split('/')[2]
-    navigateToBusiness(id)
-  } else if(h === '#/suppliers'){
-    showView('view-suppliers')
-  } else if(h === '#/auth'){
-    showView('view-auth')
-  } else {
-    showMainDashboard()
-  }
-}
-
-function navigate(hash){ location.hash = hash }
-
-function showView(id){
-  ['view-dashboard','view-business','view-suppliers','view-auth'].forEach(v=> {
-    document.getElementById(v).classList.toggle('hidden', v!==id)
-  })
-  $('#page-title').textContent = (id === 'view-dashboard') ? 'Main Dashboard' : (id === 'view-business') ? 'Business Dashboard' : (id === 'view-suppliers') ? 'Suppliers' : 'Sign In'
-}
-
-function showMainDashboard(){
-  state.currentBusiness = null
-  $('#biz-name').textContent = ''
-  $('#biz-name-small').textContent = ''
-  showView('view-dashboard')
-  renderOverviewCards()
-  renderOverallCharts()
-}
-
-function navigateToBusiness(bizId){
-  state.currentBusiness = state.businesses.find(b=>b.id === bizId)
-  if(!state.currentBusiness) return
-  $('#biz-name').textContent = state.currentBusiness.name
-  $('#biz-name-small').textContent = state.currentBusiness.name
-  showView('view-business')
-  loadBusinessData(bizId)
-}
-
-// Auth functions
-async function signIn(){
-  const email = $('#auth-email').value
-  const password = $('#auth-password').value
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-  if(error) { $('#auth-msg').textContent = error.message; return }
-  $('#auth-msg').textContent = 'Signed in'
-  updateAuthUI()
-}
-async function signUp(){
-  const email = $('#auth-email').value
-  const password = $('#auth-password').value
-  const { data, error } = await supabase.auth.signUp({ email, password })
-  if(error){ $('#auth-msg').textContent = error.message; return }
-  $('#auth-msg').textContent = 'Check your email to confirm sign up.'
-}
-async function signOut(){ await supabase.auth.signOut(); state.user = null; updateAuthUI(); showView('view-auth') }
-
-function updateAuthUI(){
-  const user = supabase.auth.getUser().then(r=>r.data.user).catch(()=>null)
-  supabase.auth.getUser().then(res=>{
-    const u = res.data.user
-    state.user = u
-    $('#app-username').textContent = u?.email || 'Guest'
-    if(u){ showMainDashboard() } else { showView('view-auth') }
-  })
-}
-
-// Data layer helpers (Supabase queries)
-// Tables expected: businesses (id, name), suppliers (id, business_id, name, contact), transactions(id,business_id, date, amount, type('income'|'expense'), category, notes)
-
-async function loadInitialData(){
-  // try to fetch transactions for the three businesses
-  const { data, error } = await supabase.from('transactions').select('*')
-  if(error) console.warn('Could not fetch transactions:', error.message)
-  else state.transactions = data || []
-  renderOverviewCards()
-  renderOverallCharts()
-}
-
-async function loadBusinessData(bizId){
-  // load suppliers
-  const { data: suppliers } = await supabase.from('suppliers').select('*').eq('business_id', bizId)
-  renderSuppliers(suppliers || [])
-  // load transactions for business
-  const { data: tx } = await supabase.from('transactions').select('*').eq('business_id', bizId).order('date', { ascending: false })
-  state.transactions = tx || []
-  renderBusinessMetrics()
-}
-
-async function saveSupplier(){
-  const name = $('#sup-name').value.trim()
-  const contact = $('#sup-contact').value.trim()
-  const business = $('#sup-business').value
-  if(!name) return alert('Enter supplier name')
-  const { data, error } = await supabase.from('suppliers').insert([{ name, contact, business_id: business }])
-  if(error) return alert('Error saving supplier: ' + error.message)
-  $('#sup-name').value=''; $('#sup-contact').value=''
-  loadInitialData(); loadBusinessData(state.currentBusiness?.id || business)
-}
-
-// Rendering helpers
-function renderOverviewCards(){
-  const container = document.querySelector('#view-dashboard .grid')
-  container.innerHTML = ''
-  state.businesses.forEach(b=>{
-    const tpl = document.getElementById('overview-card-template')
-    const el = tpl.content.cloneNode(true)
-    el.querySelector('.text-lg').textContent = b.name
-    // compute totals for business
-    const income = sumTransactions(b.id, 'income')
-    const expenses = sumTransactions(b.id, 'expense')
-    const profit = income - expenses
-    el.querySelector('.text-xl').textContent = fmtKES(income)
-    el.querySelector('.mt-3').textContent = `Profit: ${fmtKES(profit)} • Loss: ${fmtKES(Math.max(0,-profit))}`
-    el.querySelector('.btn-manage').onclick = ()=>{ navigateToBusiness(b.id) }
-    el.querySelector('.btn-view-report').onclick = ()=>{ navigate('#/business/'+b.id); }
-    container.appendChild(el)
-  })
-}
-
-function sumTransactions(bizId, type){
-  const tx = state.transactions.filter(t => t.business_id === bizId || state.currentBusiness == null)
-  // if state.transactions is global and loaded with all tx, filter by business
-  const filtered = (state.transactions && state.transactions.length>0) ? state.transactions.filter(t=>t.business_id === bizId && t.type === type) : []
-  return filtered.reduce((s,t)=> s + Number(t.amount||0), 0)
-}
-
-function renderOverallCharts(){
-  // monthly income this year vs last year
-  const now = new Date()
-  const thisYear = now.getFullYear()
-  const labels = Array.from({length:12}, (_,i)=> new Date(thisYear, i, 1).toLocaleString(undefined,{month:'short'}))
-  // prepare dataset zeros
-  const dataThis = new Array(12).fill(0)
-  const dataLast = new Array(12).fill(0)
-  (state.transactions||[]).forEach(t=>{
-    const d = new Date(t.date)
-    const y = d.getFullYear()
-    const m = d.getMonth()
-    if(t.type==='income'){
-      if(y===thisYear) dataThis[m]+= Number(t.amount||0)
-      if(y===thisYear-1) dataLast[m]+= Number(t.amount||0)
-    }
-  })
-  renderChart('chart-income-monthly', labels, [dataThis, dataLast], ['This Year','Last Year'])
-
-  // daily comparison: today vs same day last year
-  const labelsDay = ['Previous Year','Today']
-  const prevDaySum = sumForDateOffset(0, true)
-  const todaySum = sumForDateOffset(0, false)
-  renderBar('chart-daily', labelsDay, [prevDaySum, todaySum])
-}
-
-function sumForDateOffset(offsetDays, usePrevYear){
-  // offsetDays from today (0 = today). If usePrevYear true, shift by -1 year
-  const base = new Date()
-  base.setDate(base.getDate() - offsetDays)
-  if(usePrevYear) base.setFullYear(base.getFullYear() - 1)
-  const y = base.getFullYear()
-  const m = base.getMonth()
-  const d = base.getDate()
-  return (state.transactions||[]).filter(t=>{
-    const dt = new Date(t.date)
-    return dt.getFullYear()===y && dt.getMonth()===m && dt.getDate()===d && t.type==='income'
-  }).reduce((s,t)=> s + Number(t.amount||0), 0)
-}
-
-function renderChart(elId, labels, datasetsData, datasetLabels){
-  const ctx = document.getElementById(elId).getContext('2d')
-  if(window[elId]) window[elId].destroy()
-  const datasets = datasetsData.map((d,i)=>({ label: datasetLabels[i]||('Series '+i), data: d, fill:false }))
-  window[elId] = new Chart(ctx, { type:'line', data:{ labels, datasets }, options:{ responsive:true } })
-}
-function renderBar(elId, labels, data){
-  const ctx = document.getElementById(elId).getContext('2d')
-  if(window[elId]) window[elId].destroy()
-  window[elId] = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Income', data }] }, options:{ responsive:true } })
-}
-
-function renderSuppliers(suppliers){
-  const el = $('#supplier-list')
-  el.innerHTML = ''
-  suppliers.forEach(s=>{
-    const d = document.createElement('div')
-    d.className = 'p-2 border rounded flex justify-between items-center'
-    d.innerHTML = `<div><div class='font-semibold'>${s.name}</div><div class='text-xs text-slate-500'>${s.contact||''}</div></div><div class='text-slate-400 text-xs'>ID:${s.id}</div>`
-    el.appendChild(d)
-  })
-}
-
-function renderBusinessMetrics(){
-  const biz = state.currentBusiness
-  const txs = state.transactions.filter(t=>t.business_id === biz.id)
-  const income = txs.filter(t=>t.type==='income').reduce((s,t)=> s + Number(t.amount||0), 0)
-  const expense = txs.filter(t=>t.type==='expense').reduce((s,t)=> s + Number(t.amount||0), 0)
-  const profit = income - expense
-  $('#biz-income').textContent = fmtKES(income)
-  $('#biz-profit').textContent = fmtKES(profit)
-  $('#biz-loss').textContent = fmtKES(Math.max(0,-profit))
-
-  // transactions table
-  const tbody = document.querySelector('#transactions-table tbody')
-  tbody.innerHTML = ''
-  txs.forEach(t=>{
-    const tr = document.createElement('tr')
-    tr.innerHTML = `<td>${new Date(t.date).toLocaleString()}</td><td>${t.type}</td><td>${fmtKES(t.amount)}</td><td>${t.category||''}</td><td>${t.notes||''}</td>`
-    tbody.appendChild(tr)
-  })
-
-  // timeline chart
-  const grouped = groupByDate(txs)
-  const labels = Object.keys(grouped).slice(0,30).reverse()
-  const data = labels.map(l => grouped[l].reduce((s,x)=> s + Number(x.amount||0), 0))
-  renderChart('chart-biz-timeline', labels, [data], ['Amount'])
-}
-
-function groupByDate(txs){
-  const g = {}
-  txs.forEach(t=>{
-    const d = new Date(t.date)
-    const key = d.toISOString().slice(0,10)
-    if(!g[key]) g[key] = []
-    g[key].push(t)
-  })
-  return g
-}
-
-// Initialize app
-initUI()
-
-</script>
+        function renderComparisonChart(business) {
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            const colors = {
+                toplink: 'rgba(59, 130, 246, 0.7)',
+                benick: 'rgba(16, 185, 129, 0.7)',
+                kim: 'rgba(139, 92, 246, 0.7)'
+            };
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [
+                        {
+                            label: 'Current Month',
+                            data: [12000, 19000, 15000, 25000],
+                            backgroundColor: colors[business],
+                        },
+                        {
+                            label: 'Previous Month',
+                            data: [10000, 17000, 13000, 22000],
+                            backgroundColor: 'rgba(156, 163, 175, 0.7)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
