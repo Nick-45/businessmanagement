@@ -43,6 +43,12 @@
             opacity: 1;
             transform: translateX(0);
         }
+        .modal {
+            transition: all 0.3s ease-in-out;
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -151,13 +157,83 @@
             <div id="auth-message" class="mt-4 p-3 rounded hidden"></div>
 
             <div class="mt-6 text-center text-sm text-gray-600">
-                <p>Demo: Use any valid email and password to sign up</p>
+                <p>Demo: Use demo@example.com / password123 to login</p>
             </div>
         </div>
     </div>
 
     <!-- Main App (initially hidden) -->
     <div id="app" class="hidden">
+        <!-- Add Record Modal -->
+        <div id="add-record-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                <h3 class="text-xl font-bold mb-4">Add New Record</h3>
+                <form id="record-form">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Business</label>
+                        <select class="w-full p-2 border rounded" id="record-business">
+                            <option value="toplink">TOPLINK SOLUTIONS</option>
+                            <option value="benick">BENICK ACCESSORIES</option>
+                            <option value="kim">KIM MELONS</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Type</label>
+                        <select class="w-full p-2 border rounded" id="record-type">
+                            <option value="income">Income</option>
+                            <option value="expense">Expense</option>
+                            <option value="supplier">Supplier Payment</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Amount</label>
+                        <input type="number" class="w-full p-2 border rounded" id="record-amount" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                        <textarea class="w-full p-2 border rounded" id="record-description" rows="3" placeholder="Enter description"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-record" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">Cancel</button>
+                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Save Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Supplier Modal -->
+        <div id="add-supplier-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                <h3 class="text-xl font-bold mb-4">Add New Supplier</h3>
+                <form id="supplier-form">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Business</label>
+                        <select class="w-full p-2 border rounded" id="supplier-business">
+                            <option value="toplink">TOPLINK SOLUTIONS</option>
+                            <option value="benick">BENICK ACCESSORIES</option>
+                            <option value="kim">KIM MELONS</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Supplier Name</label>
+                        <input type="text" class="w-full p-2 border rounded" id="supplier-name" placeholder="Enter supplier name">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Contact Email</label>
+                        <input type="email" class="w-full p-2 border rounded" id="supplier-email" placeholder="supplier@email.com">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Phone</label>
+                        <input type="tel" class="w-full p-2 border rounded" id="supplier-phone" placeholder="+1-555-0123">
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-supplier" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">Cancel</button>
+                        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Add Supplier</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Sidebar -->
         <div class="fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-10">
             <div class="p-4 border-b">
@@ -312,6 +388,14 @@
         const forgotPasswordLink = document.getElementById('forgot-password-link');
         const backToLogin = document.getElementById('back-to-login');
         
+        // Modal elements
+        const addRecordModal = document.getElementById('add-record-modal');
+        const addSupplierModal = document.getElementById('add-supplier-modal');
+        const recordForm = document.getElementById('record-form');
+        const supplierForm = document.getElementById('supplier-form');
+        const cancelRecord = document.getElementById('cancel-record');
+        const cancelSupplier = document.getElementById('cancel-supplier');
+        
         const logoutBtn = document.getElementById('logout-btn');
         const pageContent = document.getElementById('page-content');
         const sidebarLinks = document.querySelectorAll('.sidebar-link');
@@ -321,17 +405,14 @@
 
         // Show/hide forms
         function showForm(formToShow) {
-            // Hide all forms
             document.querySelectorAll('.auth-form').forEach(form => {
                 form.classList.remove('active-form');
                 form.classList.add('hidden-form');
             });
             
-            // Show target form
             formToShow.classList.remove('hidden-form');
             formToShow.classList.add('active-form');
             
-            // Update tab styles
             loginTab.classList.remove('bg-blue-500', 'text-white');
             signupTab.classList.remove('bg-blue-500', 'text-white');
             
@@ -343,8 +424,16 @@
                 loginTab.classList.add('text-gray-600', 'hover:text-gray-800');
             }
             
-            // Clear messages
             hideMessage();
+        }
+
+        // Modal functions
+        function showModal(modal) {
+            modal.classList.remove('hidden');
+        }
+
+        function hideModal(modal) {
+            modal.classList.add('hidden');
         }
 
         // Show message
@@ -354,17 +443,14 @@
             authMessage.classList.remove('hidden');
         }
 
-        // Hide message
         function hideMessage() {
             authMessage.classList.add('hidden');
         }
 
-        // Show loading
         function showLoading() {
             loadingSpinner.classList.remove('hidden');
         }
 
-        // Hide loading
         function hideLoading() {
             loadingSpinner.classList.add('hidden');
         }
@@ -378,36 +464,66 @@
         });
         backToLogin.addEventListener('click', () => showForm(loginForm));
 
+        // Modal event listeners
+        cancelRecord.addEventListener('click', () => hideModal(addRecordModal));
+        cancelSupplier.addEventListener('click', () => hideModal(addSupplierModal));
+
+        // Record form handler
+        recordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const business = document.getElementById('record-business').value;
+            const type = document.getElementById('record-type').value;
+            const amount = document.getElementById('record-amount').value;
+            const description = document.getElementById('record-description').value;
+            
+            // In a real app, you would save to Supabase here
+            console.log('New record:', { business, type, amount, description });
+            
+            alert(`Record added successfully!\nBusiness: ${businessData[business].name}\nType: ${type}\nAmount: $${amount}\nDescription: ${description}`);
+            
+            hideModal(addRecordModal);
+            recordForm.reset();
+        });
+
+        // Supplier form handler
+        supplierForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const business = document.getElementById('supplier-business').value;
+            const name = document.getElementById('supplier-name').value;
+            const email = document.getElementById('supplier-email').value;
+            const phone = document.getElementById('supplier-phone').value;
+            
+            // In a real app, you would save to Supabase here
+            console.log('New supplier:', { business, name, email, phone });
+            
+            alert(`Supplier added successfully!\nBusiness: ${businessData[business].name}\nSupplier: ${name}\nEmail: ${email}\nPhone: ${phone}`);
+            
+            hideModal(addSupplierModal);
+            supplierForm.reset();
+        });
+
         // Login handler
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             
-            showLoading();
-            hideMessage();
-            
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password
-                });
-                
-                if (error) throw error;
-                
-                currentUser = data.user;
-                showMessage('Login successful!', 'success');
+            // Demo login - no Supabase required
+            if (email && password) {
+                showLoading();
                 setTimeout(() => {
-                    loginScreen.classList.add('hidden');
-                    app.classList.remove('hidden');
-                    userWelcome.textContent = `Welcome back, ${currentUser.email}!`;
-                    loadPage('main-dashboard');
-                }, 1000);
-                
-            } catch (error) {
-                showMessage(error.message);
-            } finally {
-                hideLoading();
+                    currentUser = { email: email };
+                    showMessage('Login successful!', 'success');
+                    setTimeout(() => {
+                        loginScreen.classList.add('hidden');
+                        app.classList.remove('hidden');
+                        userWelcome.textContent = `Welcome back, ${currentUser.email}!`;
+                        loadPage('main-dashboard');
+                        hideLoading();
+                    }, 1000);
+                }, 1500);
+            } else {
+                showMessage('Please enter both email and password');
             }
         });
 
@@ -419,29 +535,14 @@
             const password = document.getElementById('signup-password').value;
             
             showLoading();
-            hideMessage();
-            
-            try {
-                const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: {
-                            full_name: name
-                        }
-                    }
-                });
-                
-                if (error) throw error;
-                
-                showMessage('Account created successfully! Please check your email for verification.', 'success');
-                setTimeout(() => showForm(loginForm), 3000);
-                
-            } catch (error) {
-                showMessage(error.message);
-            } finally {
-                hideLoading();
-            }
+            setTimeout(() => {
+                showMessage('Account created successfully! You can now login.', 'success');
+                setTimeout(() => {
+                    showForm(loginForm);
+                    document.getElementById('login-email').value = email;
+                    hideLoading();
+                }, 2000);
+            }, 1500);
         });
 
         // Forgot password handler
@@ -450,55 +551,35 @@
             const email = document.getElementById('reset-email').value;
             
             showLoading();
-            hideMessage();
-            
-            try {
-                const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${window.location.origin}/reset-password.html`,
-                });
-                
-                if (error) throw error;
-                
+            setTimeout(() => {
                 showMessage('Password reset link sent to your email!', 'success');
-                
-            } catch (error) {
-                showMessage(error.message);
-            } finally {
-                hideLoading();
-            }
+                setTimeout(() => {
+                    showForm(loginForm);
+                    hideLoading();
+                }, 2000);
+            }, 1500);
         });
 
         // Logout handler
         logoutBtn.addEventListener('click', async () => {
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                
-                app.classList.add('hidden');
-                loginScreen.classList.remove('hidden');
-                currentUser = null;
-                
-                // Reset forms
-                showForm(loginForm);
-                document.getElementById('login-email').value = '';
-                document.getElementById('login-password').value = '';
-                hideMessage();
-                
-            } catch (error) {
-                console.error('Logout error:', error);
-            }
+            currentUser = null;
+            app.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            showForm(loginForm);
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
+            hideMessage();
         });
 
         // Check for existing session on page load
-        async function checkAuth() {
-            const { data } = await supabase.auth.getSession();
-            if (data.session) {
-                currentUser = data.session.user;
-                loginScreen.classList.add('hidden');
-                app.classList.remove('hidden');
-                userWelcome.textContent = `Welcome back, ${currentUser.email}!`;
-                loadPage('main-dashboard');
-            }
+        function checkAuth() {
+            // For demo, auto-login with demo credentials
+            const demoEmail = 'demo@example.com';
+            currentUser = { email: demoEmail };
+            loginScreen.classList.add('hidden');
+            app.classList.remove('hidden');
+            userWelcome.textContent = `Welcome back, ${currentUser.email}!`;
+            loadPage('main-dashboard');
         }
 
         // Initialize auth check
@@ -510,7 +591,6 @@
                 e.preventDefault();
                 const page = link.getAttribute('data-page');
                 
-                // Update active state
                 sidebarLinks.forEach(l => l.classList.remove('active'));
                 link.classList.add('active');
                 
@@ -553,6 +633,7 @@
                 }
             }, 10);
         }
+
         // Load main dashboard
         function loadMainDashboard() {
             pageContent.innerHTML = `
@@ -562,56 +643,9 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">TOPLINK SOLUTIONS</h3>
-                                <p class="text-2xl font-bold text-blue-600 mt-2">$${businessData.toplink.income.toLocaleString()}</p>
-                                <p class="text-green-500 mt-1">Profit: $${businessData.toplink.profit.toLocaleString()}</p>
-                                <p class="text-red-500 mt-1">Losses: $${businessData.toplink.losses.toLocaleString()}</p>
-                            </div>
-                            <div class="bg-blue-100 p-3 rounded-full">
-                                <i class="fas fa-building text-blue-500 text-xl"></i>
-                            </div>
-                        </div>
-                        <button class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition duration-200 view-business-btn" data-business="toplink">
-                            View Details
-                        </button>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">BENICK ACCESSORIES</h3>
-                                <p class="text-2xl font-bold text-green-600 mt-2">$${businessData.benick.income.toLocaleString()}</p>
-                                <p class="text-green-500 mt-1">Profit: $${businessData.benick.profit.toLocaleString()}</p>
-                                <p class="text-red-500 mt-1">Losses: $${businessData.benick.losses.toLocaleString()}</p>
-                            </div>
-                            <div class="bg-green-100 p-3 rounded-full">
-                                <i class="fas fa-store text-green-500 text-xl"></i>
-                            </div>
-                        </div>
-                        <button class="mt-4 w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition duration-200 view-business-btn" data-business="benick">
-                            View Details
-                        </button>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">KIM MELONS</h3>
-                                <p class="text-2xl font-bold text-purple-600 mt-2">$${businessData.kim.income.toLocaleString()}</p>
-                                <p class="text-green-500 mt-1">Profit: $${businessData.kim.profit.toLocaleString()}</p>
-                                <p class="text-red-500 mt-1">Losses: $${businessData.kim.losses.toLocaleString()}</p>
-                            </div>
-                            <div class="bg-purple-100 p-3 rounded-full">
-                                <i class="fas fa-seedling text-purple-500 text-xl"></i>
-                            </div>
-                        </div>
-                        <button class="mt-4 w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg transition duration-200 view-business-btn" data-business="kim">
-                            View Details
-                        </button>
-                    </div>
+                    ${generateBusinessCard('toplink')}
+                    ${generateBusinessCard('benick')}
+                    ${generateBusinessCard('kim')}
                 </div>
                 
                 <div class="bg-white rounded-xl shadow-md p-6 mb-8">
@@ -658,19 +692,19 @@
                     <div class="bg-white rounded-xl shadow-md p-6">
                         <h2 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
                         <div class="grid grid-cols-2 gap-4">
-                            <button class="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center">
+                            <button class="quick-action-btn bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center" data-action="add-record">
                                 <i class="fas fa-plus text-xl mb-2"></i>
                                 <span>Add Record</span>
                             </button>
-                            <button class="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center">
+                            <button class="quick-action-btn bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center" data-action="generate-report">
                                 <i class="fas fa-chart-bar text-xl mb-2"></i>
                                 <span>Generate Report</span>
                             </button>
-                            <button class="bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center">
+                            <button class="quick-action-btn bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center" data-action="manage-suppliers">
                                 <i class="fas fa-users text-xl mb-2"></i>
                                 <span>Manage Suppliers</span>
                             </button>
-                            <button class="bg-indigo-500 hover:bg-indigo-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center">
+                            <button class="quick-action-btn bg-indigo-500 hover:bg-indigo-600 text-white py-3 rounded-lg transition duration-200 flex flex-col items-center justify-center" data-action="settings">
                                 <i class="fas fa-cog text-xl mb-2"></i>
                                 <span>Settings</span>
                             </button>
@@ -685,14 +719,67 @@
                     const business = btn.getAttribute('data-business');
                     loadBusinessDashboard(business);
                     
-                    // Update sidebar active state
                     sidebarLinks.forEach(l => l.classList.remove('active'));
                     document.querySelector(`[data-page="${business}-dashboard"]`).classList.add('active');
                 });
             });
+
+            // Add event listeners to quick action buttons
+            document.querySelectorAll('.quick-action-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.getAttribute('data-action');
+                    handleQuickAction(action);
+                });
+            });
             
-            // Render charts
             renderOverviewChart();
+        }
+
+        // Handle quick actions
+        function handleQuickAction(action) {
+            switch(action) {
+                case 'add-record':
+                    showModal(addRecordModal);
+                    break;
+                case 'generate-report':
+                    alert('Report generation feature would be implemented here!');
+                    break;
+                case 'manage-suppliers':
+                    loadPage('suppliers');
+                    sidebarLinks.forEach(l => l.classList.remove('active'));
+                    document.querySelector('[data-page="suppliers"]').classList.add('active');
+                    break;
+                case 'settings':
+                    alert('Settings panel would open here!');
+                    break;
+            }
+        }
+
+        // Generate business card HTML
+        function generateBusinessCard(business) {
+            const biz = businessData[business];
+            return `
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700">${biz.name}</h3>
+                            <p class="text-2xl font-bold text-${biz.color}-600 mt-2">$${biz.income.toLocaleString()}</p>
+                            <p class="text-green-500 mt-1">Profit: $${biz.profit.toLocaleString()}</p>
+                            <p class="text-red-500 mt-1">Losses: $${biz.losses.toLocaleString()}</p>
+                            <div class="mt-3 flex space-x-2">
+                                <span class="bg-${biz.color}-100 text-${biz.color}-800 text-xs px-2 py-1 rounded">Daily: ${biz.dailyComparison}</span>
+                                <span class="bg-${biz.color}-100 text-${biz.color}-800 text-xs px-2 py-1 rounded">Weekly: ${biz.weeklyComparison}</span>
+                            </div>
+                        </div>
+                        <div class="bg-${biz.color}-100 p-3 rounded-full">
+                            <i class="fas fa-${business === 'toplink' ? 'building' : business === 'benick' ? 'store' : 'seedling'} text-${biz.color}-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <button class="mt-4 w-full bg-${biz.color}-500 hover:bg-${biz.color}-600 text-white py-2 rounded-lg transition duration-200 view-business-btn" data-business="${business}">
+                        View Details
+                    </button>
+                </div>
+            `;
         }
 
         // Load business dashboard
@@ -700,7 +787,6 @@
             const biz = businessData[business];
             const colorClass = `text-${biz.color}-600`;
             const bgColorClass = `bg-${biz.color}-100`;
-            const borderColorClass = `border-${biz.color}-500`;
             
             pageContent.innerHTML = `
                 <div class="mb-8">
@@ -710,10 +796,10 @@
                             <p class="text-gray-600">Detailed overview and management</p>
                         </div>
                         <div class="flex space-x-4">
-                            <button class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg transition duration-200">
+                            <button class="export-btn bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg transition duration-200">
                                 <i class="fas fa-download mr-2"></i>Export
                             </button>
-                            <button class="bg-${biz.color}-500 hover:bg-${biz.color}-600 text-white py-2 px-4 rounded-lg transition duration-200">
+                            <button class="add-record-btn bg-${biz.color}-500 hover:bg-${biz.color}-600 text-white py-2 px-4 rounded-lg transition duration-200">
                                 <i class="fas fa-plus mr-2"></i>Add Record
                             </button>
                         </div>
@@ -731,7 +817,7 @@
                                 <i class="fas fa-money-bill-wave ${colorClass} text-xl"></i>
                             </div>
                         </div>
-                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i> 12% from last month</p>
+                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i> ${biz.monthlyComparison} from last year</p>
                     </div>
                     
                     <div class="bg-white rounded-xl shadow-md p-6 card-hover">
@@ -744,7 +830,7 @@
                                 <i class="fas fa-chart-line text-green-500 text-xl"></i>
                             </div>
                         </div>
-                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i> 8% from last month</p>
+                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i> ${biz.weeklyComparison} from last week</p>
                     </div>
                     
                     <div class="bg-white rounded-xl shadow-md p-6 card-hover">
@@ -799,37 +885,39 @@
                                         <tr>
                                             <td class="px-4 py-3 whitespace-nowrap">
                                                 <div class="font-medium text-gray-900">${supplier.name}</div>
+                                                <div class="text-sm text-gray-500">${supplier.phone}</div>
                                             </td>
                                             <td class="px-4 py-3 whitespace-nowrap text-gray-500">${supplier.contact}</td>
                                             <td class="px-4 py-3 whitespace-nowrap">
                                                 <div class="flex items-center">
                                                     <div class="text-yellow-400 mr-1">
-                                                        <i class="fas fa-star"></i>
+                                                        ${'<i class="fas fa-star"></i>'.repeat(Math.floor(supplier.rating))}
+                                                        ${supplier.rating % 1 !== 0 ? '<i class="fas fa-star-half-alt"></i>' : ''}
                                                     </div>
-                                                    <span>${supplier.rating}</span>
+                                                    <span class="ml-1">${supplier.rating}</span>
                                                 </div>
                                             </td>
                                             <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                                <button class="text-${biz.color}-600 hover:text-${biz.color}-900 mr-3">Edit</button>
-                                                <button class="text-red-600 hover:text-red-900">Delete</button>
+                                                <button class="edit-supplier-btn text-${biz.color}-600 hover:text-${biz.color}-900 mr-3">Edit</button>
+                                                <button class="delete-supplier-btn text-red-600 hover:text-red-900">Delete</button>
                                             </td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
                             </table>
                         </div>
-                        <button class="mt-4 bg-${biz.color}-500 hover:bg-${biz.color}-600 text-white py-2 px-4 rounded-lg transition duration-200">
+                        <button class="add-supplier-btn mt-4 bg-${biz.color}-500 hover:bg-${biz.color}-600 text-white py-2 px-4 rounded-lg transition duration-200">
                             <i class="fas fa-plus mr-2"></i>Add New Supplier
                         </button>
                     </div>
                 </div>
                 
                 <div class="bg-white rounded-xl shadow-md p-6">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4">Comparison Reports</h2>
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Year-over-Year Comparison</h2>
                     <div class="flex space-x-4 mb-6">
-                        <button class="bg-${biz.color}-500 text-white py-2 px-4 rounded-lg">Daily</button>
-                        <button class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg">Weekly</button>
-                        <button class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg">Monthly</button>
+                        <button class="comparison-btn bg-${biz.color}-500 text-white py-2 px-4 rounded-lg" data-period="daily">Daily</button>
+                        <button class="comparison-btn bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg" data-period="weekly">Weekly</button>
+                        <button class="comparison-btn bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg" data-period="monthly">Monthly</button>
                     </div>
                     <div class="h-80">
                         <canvas id="comparisonChart"></canvas>
@@ -837,9 +925,228 @@
                 </div>
             `;
             
-            // Render charts
+            // Add event listeners to buttons in business dashboard
+            document.querySelector('.add-record-btn').addEventListener('click', () => {
+                showModal(addRecordModal);
+            });
+            
+            document.querySelector('.export-btn').addEventListener('click', () => {
+                alert(`Exporting data for ${biz.name}...`);
+            });
+            
+            document.querySelector('.add-supplier-btn').addEventListener('click', () => {
+                showModal(addSupplierModal);
+            });
+            
+            // Add event listeners to comparison buttons
+            document.querySelectorAll('.comparison-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const period = btn.getAttribute('data-period');
+                    alert(`Showing ${period} comparison for ${biz.name}`);
+                    
+                    // Update button states
+                    document.querySelectorAll('.comparison-btn').forEach(b => {
+                        b.classList.remove(`bg-${biz.color}-500`, 'text-white');
+                        b.classList.add('bg-white', 'border', 'border-gray-300', 'text-gray-700');
+                    });
+                    btn.classList.add(`bg-${biz.color}-500`, 'text-white');
+                    btn.classList.remove('bg-white', 'border', 'border-gray-300', 'text-gray-700');
+                });
+            });
+            
+            // Add event listeners to supplier action buttons
+            document.querySelectorAll('.edit-supplier-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    alert('Edit supplier feature would open here!');
+                });
+            });
+            
+            document.querySelectorAll('.delete-supplier-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to delete this supplier?')) {
+                        alert('Supplier deleted successfully!');
+                    }
+                });
+            });
+            
             renderBusinessChart(business);
             renderComparisonChart(business);
+        }
+
+        // Load all suppliers page
+        function loadAllSuppliers() {
+            // Combine all suppliers
+            const allSuppliers = [
+                ...businessData.toplink.suppliers.map(s => ({...s, business: 'TOPLINK SOLUTIONS', businessId: 'toplink'})),
+                ...businessData.benick.suppliers.map(s => ({...s, business: 'BENICK ACCESSORIES', businessId: 'benick'})),
+                ...businessData.kim.suppliers.map(s => ({...s, business: 'KIM MELONS', businessId: 'kim'}))
+            ];
+            
+            pageContent.innerHTML = `
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">All Suppliers</h1>
+                    <p class="text-gray-600">Manage suppliers across all businesses</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">Supplier Directory</h2>
+                        <button class="global-add-supplier-btn bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition duration-200">
+                            <i class="fas fa-plus mr-2"></i>Add New Supplier
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${allSuppliers.map(supplier => `
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <div class="font-medium text-gray-900">${supplier.name}</div>
+                                            <div class="text-sm text-gray-500">${supplier.phone}</div>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <span class="px-2 py-1 text-xs rounded-full 
+                                                ${supplier.businessId === 'toplink' ? 'bg-blue-100 text-blue-800' : 
+                                                  supplier.businessId === 'benick' ? 'bg-green-100 text-green-800' : 
+                                                  'bg-purple-100 text-purple-800'}">
+                                                ${supplier.business}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-gray-500">${supplier.contact}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="text-yellow-400 mr-1">
+                                                    ${'<i class="fas fa-star"></i>'.repeat(Math.floor(supplier.rating))}
+                                                    ${supplier.rating % 1 !== 0 ? '<i class="fas fa-star-half-alt"></i>' : ''}
+                                                </div>
+                                                <span class="ml-1">${supplier.rating}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                            <button class="edit-supplier-btn text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                            <button class="delete-supplier-btn text-red-600 hover:text-red-900">Delete</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listeners
+            document.querySelector('.global-add-supplier-btn').addEventListener('click', () => {
+                showModal(addSupplierModal);
+            });
+            
+            document.querySelectorAll('.edit-supplier-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    alert('Edit supplier feature would open here!');
+                });
+            });
+            
+            document.querySelectorAll('.delete-supplier-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to delete this supplier?')) {
+                        alert('Supplier deleted successfully!');
+                    }
+                });
+            });
+        }
+
+        // Load reports page
+        function loadReportsPage() {
+            pageContent.innerHTML = `
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">Business Reports</h1>
+                    <p class="text-gray-600">Generate and view detailed reports</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700">Profit & Loss</h3>
+                                <p class="text-gray-500 mt-2">Monthly P&L statements</p>
+                            </div>
+                            <div class="bg-blue-100 p-3 rounded-full">
+                                <i class="fas fa-file-invoice-dollar text-blue-500 text-xl"></i>
+                            </div>
+                        </div>
+                        <button class="report-btn mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition duration-200" data-report="profit-loss">
+                            Generate Report
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700">Supplier Performance</h3>
+                                <p class="text-gray-500 mt-2">Vendor evaluation reports</p>
+                            </div>
+                            <div class="bg-green-100 p-3 rounded-full">
+                                <i class="fas fa-chart-line text-green-500 text-xl"></i>
+                            </div>
+                        </div>
+                        <button class="report-btn mt-4 w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition duration-200" data-report="supplier-performance">
+                            Generate Report
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700">Tax Preparation</h3>
+                                <p class="text-gray-500 mt-2">Year-end tax documents</p>
+                            </div>
+                            <div class="bg-purple-100 p-3 rounded-full">
+                                <i class="fas fa-receipt text-purple-500 text-xl"></i>
+                            </div>
+                        </div>
+                        <button class="report-btn mt-4 w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg transition duration-200" data-report="tax">
+                            Generate Report
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Reports</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                                <h4 class="font-semibold">Q3 Financial Summary</h4>
+                                <p class="text-sm text-gray-500">Generated on October 15, 2023</p>
+                            </div>
+                            <button class="text-blue-500 hover:text-blue-700">Download</button>
+                        </div>
+                        <div class="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                                <h4 class="font-semibold">Supplier Performance Q3</h4>
+                                <p class="text-sm text-gray-500">Generated on October 10, 2023</p>
+                            </div>
+                            <button class="text-blue-500 hover:text-blue-700">Download</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listeners to report buttons
+            document.querySelectorAll('.report-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const reportType = btn.getAttribute('data-report');
+                    alert(`Generating ${reportType.replace('-', ' ')} report...`);
+                });
+            });
         }
 
         // Load profile page
@@ -864,10 +1171,10 @@
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-gray-700 text-sm font-bold mb-2" for="email">Email</label>
-                                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="email" type="email" value="stella@business.com">
+                                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="email" type="email" value="${currentUser?.email || 'stella@business.com'}">
                             </div>
                         </div>
-                        <button class="mt-6 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        <button class="mt-6 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline save-profile-btn">
                             Save Changes
                         </button>
                     </div>
@@ -888,148 +1195,43 @@
                                 <label for="updates" class="ml-2 block text-sm text-gray-700">Product updates and news</label>
                             </div>
                         </div>
-                        <button class="mt-6 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        <button class="mt-6 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline save-preferences-btn">
                             Save Preferences
                         </button>
                     </div>
                 </div>
             `;
+            
+            // Add event listeners for profile page
+            document.querySelector('.save-profile-btn').addEventListener('click', () => {
+                alert('Profile updated successfully!');
+            });
+            
+            document.querySelector('.save-preferences-btn').addEventListener('click', () => {
+                alert('Preferences saved successfully!');
+            });
         }
 
-        // Chart rendering functions
+        // Chart rendering functions (simplified for demo)
         function renderOverviewChart() {
-            const ctx = document.getElementById('overviewChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    datasets: [
-                        {
-                            label: 'TOPLINK SOLUTIONS',
-                            data: [12000, 19000, 15000, 25000, 22000, 30000],
-                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                        },
-                        {
-                            label: 'BENICK ACCESSORIES',
-                            data: [8000, 12000, 10000, 15000, 18000, 20000],
-                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
-                        },
-                        {
-                            label: 'KIM MELONS',
-                            data: [6000, 9000, 11000, 13000, 15000, 18000],
-                            backgroundColor: 'rgba(139, 92, 246, 0.7)',
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            const ctx = document.getElementById('overviewChart');
+            if (ctx) {
+                // Chart implementation would go here
+            }
         }
 
         function renderBusinessChart(business) {
-            const ctx = document.getElementById('businessChart').getContext('2d');
-            const colors = {
-                toplink: 'rgba(59, 130, 246, 0.7)',
-                benick: 'rgba(16, 185, 129, 0.7)',
-                kim: 'rgba(139, 92, 246, 0.7)'
-            };
-            
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    datasets: [
-                        {
-                            label: 'Income',
-                            data: business === 'toplink' ? [12000, 19000, 15000, 25000, 22000, 30000] :
-                                  business === 'benick' ? [8000, 12000, 10000, 15000, 18000, 20000] :
-                                  [6000, 9000, 11000, 13000, 15000, 18000],
-                            borderColor: colors[business],
-                            backgroundColor: colors[business].replace('0.7', '0.1'),
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Profit',
-                            data: business === 'toplink' ? [8000, 12000, 10000, 15000, 13000, 18000] :
-                                  business === 'benick' ? [5000, 8000, 7000, 10000, 12000, 14000] :
-                                  [4000, 6000, 7000, 9000, 10000, 12000],
-                            borderColor: 'rgba(16, 185, 129, 0.7)',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            const ctx = document.getElementById('businessChart');
+            if (ctx) {
+                // Chart implementation would go here
+            }
         }
 
         function renderComparisonChart(business) {
-            const ctx = document.getElementById('comparisonChart').getContext('2d');
-            const colors = {
-                toplink: 'rgba(59, 130, 246, 0.7)',
-                benick: 'rgba(16, 185, 129, 0.7)',
-                kim: 'rgba(139, 92, 246, 0.7)'
-            };
-            
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                    datasets: [
-                        {
-                            label: 'Current Month',
-                            data: [12000, 19000, 15000, 25000],
-                            backgroundColor: colors[business],
-                        },
-                        {
-                            label: 'Previous Month',
-                            data: [10000, 17000, 13000, 22000],
-                            backgroundColor: 'rgba(156, 163, 175, 0.7)',
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            const ctx = document.getElementById('comparisonChart');
+            if (ctx) {
+                // Chart implementation would go here
+            }
         }
     </script>
 </body>
