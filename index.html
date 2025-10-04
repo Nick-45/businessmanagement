@@ -314,8 +314,8 @@
         
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Sample data for demonstration
-        const businessData = {
+        // Sample data for demonstration (fallback only)
+        const demoBusinessData = {
             'toplink': {
                 name: 'TOPLINK SOLUTIONS',
                 color: 'blue',
@@ -402,6 +402,7 @@
 
         // Auth state management
         let currentUser = null;
+        let businessData = {};
 
         // Show/hide forms
         function showForm(formToShow) {
@@ -469,37 +470,79 @@
         cancelSupplier.addEventListener('click', () => hideModal(addSupplierModal));
 
         // Record form handler
-        recordForm.addEventListener('submit', (e) => {
+        recordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const business = document.getElementById('record-business').value;
             const type = document.getElementById('record-type').value;
             const amount = document.getElementById('record-amount').value;
             const description = document.getElementById('record-description').value;
             
-            // In a real app, you would save to Supabase here
-            console.log('New record:', { business, type, amount, description });
-            
-            alert(`Record added successfully!\nBusiness: ${businessData[business].name}\nType: ${type}\nAmount: $${amount}\nDescription: ${description}`);
-            
-            hideModal(addRecordModal);
-            recordForm.reset();
+            // Save to Supabase
+            try {
+                const { data, error } = await supabase
+                    .from('records')
+                    .insert([
+                        { 
+                            business: business, 
+                            type: type, 
+                            amount: parseFloat(amount), 
+                            description: description,
+                            user_id: currentUser?.id || 'demo-user'
+                        }
+                    ]);
+                
+                if (error) throw error;
+                
+                alert(`Record added successfully!\nBusiness: ${businessData[business].name}\nType: ${type}\nAmount: $${amount}\nDescription: ${description}`);
+                
+                hideModal(addRecordModal);
+                recordForm.reset();
+                
+                // Refresh data after adding record
+                await fetchBusinessData();
+                loadPage('main-dashboard');
+            } catch (error) {
+                console.error('Error adding record:', error);
+                alert('Error adding record. Please try again.');
+            }
         });
 
         // Supplier form handler
-        supplierForm.addEventListener('submit', (e) => {
+        supplierForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const business = document.getElementById('supplier-business').value;
             const name = document.getElementById('supplier-name').value;
             const email = document.getElementById('supplier-email').value;
             const phone = document.getElementById('supplier-phone').value;
             
-            // In a real app, you would save to Supabase here
-            console.log('New supplier:', { business, name, email, phone });
-            
-            alert(`Supplier added successfully!\nBusiness: ${businessData[business].name}\nSupplier: ${name}\nEmail: ${email}\nPhone: ${phone}`);
-            
-            hideModal(addSupplierModal);
-            supplierForm.reset();
+            // Save to Supabase
+            try {
+                const { data, error } = await supabase
+                    .from('suppliers')
+                    .insert([
+                        { 
+                            business: business, 
+                            name: name, 
+                            contact: email, 
+                            phone: phone,
+                            user_id: currentUser?.id || 'demo-user'
+                        }
+                    ]);
+                
+                if (error) throw error;
+                
+                alert(`Supplier added successfully!\nBusiness: ${businessData[business].name}\nSupplier: ${name}\nEmail: ${email}\nPhone: ${phone}`);
+                
+                hideModal(addSupplierModal);
+                supplierForm.reset();
+                
+                // Refresh data after adding supplier
+                await fetchBusinessData();
+                loadPage('suppliers');
+            } catch (error) {
+                console.error('Error adding supplier:', error);
+                alert('Error adding supplier. Please try again.');
+            }
         });
 
         // Login handler
@@ -511,10 +554,11 @@
             // Demo login - no Supabase required
             if (email && password) {
                 showLoading();
-                setTimeout(() => {
-                    currentUser = { email: email };
+                setTimeout(async () => {
+                    currentUser = { email: email, id: 'demo-user' };
                     showMessage('Login successful!', 'success');
-                    setTimeout(() => {
+                    setTimeout(async () => {
+                        await fetchBusinessData();
                         loginScreen.classList.add('hidden');
                         app.classList.remove('hidden');
                         userWelcome.textContent = `Welcome back, ${currentUser.email}!`;
@@ -571,11 +615,82 @@
             hideMessage();
         });
 
+        // Fetch business data from Supabase
+        async function fetchBusinessData() {
+            try {
+                // Fetch records from Supabase
+                const { data: records, error: recordsError } = await supabase
+                    .from('records')
+                    .select('*')
+                    .eq('user_id', currentUser?.id || 'demo-user');
+                
+                if (recordsError) throw recordsError;
+                
+                // Fetch suppliers from Supabase
+                const { data: suppliers, error: suppliersError } = await supabase
+                    .from('suppliers')
+                    .select('*')
+                    .eq('user_id', currentUser?.id || 'demo-user');
+                
+                if (suppliersError) throw suppliersError;
+                
+                // Process data if we have records from Supabase
+                if (records && records.length > 0) {
+                    // Initialize business data structure
+                    businessData = {
+                        'toplink': { ...demoBusinessData.toplink, income: 0, profit: 0, losses: 0, suppliers: [] },
+                        'benick': { ...demoBusinessData.benick, income: 0, profit: 0, losses: 0, suppliers: [] },
+                        'kim': { ...demoBusinessData.kim, income: 0, profit: 0, losses: 0, suppliers: [] }
+                    };
+                    
+                    // Calculate income, profit, and losses from records
+                    records.forEach(record => {
+                        if (record.type === 'income') {
+                            businessData[record.business].income += record.amount;
+                            businessData[record.business].profit += record.amount;
+                        } else if (record.type === 'expense') {
+                            businessData[record.business].losses += record.amount;
+                            businessData[record.business].profit -= record.amount;
+                        } else if (record.type === 'supplier') {
+                            businessData[record.business].losses += record.amount;
+                            businessData[record.business].profit -= record.amount;
+                        }
+                    });
+                    
+                    // Add suppliers from Supabase
+                    if (suppliers && suppliers.length > 0) {
+                        suppliers.forEach(supplier => {
+                            businessData[supplier.business].suppliers.push({
+                                id: supplier.id,
+                                name: supplier.name,
+                                contact: supplier.contact,
+                                phone: supplier.phone,
+                                rating: 4.0 // Default rating
+                            });
+                        });
+                    }
+                } else {
+                    // Use demo data if no records in Supabase
+                    businessData = { ...demoBusinessData };
+                    console.log('Using demo data as no Supabase records found');
+                }
+            } catch (error) {
+                console.error('Error fetching data from Supabase:', error);
+                // Fallback to demo data
+                businessData = { ...demoBusinessData };
+                console.log('Using demo data due to Supabase error');
+            }
+        }
+
         // Check for existing session on page load
-        function checkAuth() {
+        async function checkAuth() {
             // For demo, auto-login with demo credentials
             const demoEmail = 'demo@example.com';
-            currentUser = { email: demoEmail };
+            currentUser = { email: demoEmail, id: 'demo-user' };
+            
+            // Fetch data from Supabase
+            await fetchBusinessData();
+            
             loginScreen.classList.add('hidden');
             app.classList.remove('hidden');
             userWelcome.textContent = `Welcome back, ${currentUser.email}!`;
