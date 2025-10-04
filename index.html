@@ -878,9 +878,9 @@
                     <div class="flex justify-between items-start">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-700">${biz.name}</h3>
-                            <p class="text-2xl font-bold text-${biz.color}-600 mt-2">$${biz.income.toLocaleString()}</p>
-                            <p class="text-green-500 mt-1">Profit: $${biz.profit.toLocaleString()}</p>
-                            <p class="text-red-500 mt-1">Losses: $${biz.losses.toLocaleString()}</p>
+                            <p class="text-2xl font-bold text-${biz.color}-600 mt-2">Ksh${biz.income.toLocaleString()}</p>
+                            <p class="text-green-500 mt-1">Profit: Ksh${biz.profit.toLocaleString()}</p>
+                            <p class="text-red-500 mt-1">Losses: Ksh${biz.losses.toLocaleString()}</p>
                             <div class="mt-3 flex space-x-2">
                                 <span class="bg-${biz.color}-100 text-${biz.color}-800 text-xs px-2 py-1 rounded">Daily: ${biz.dailyComparison}</span>
                                 <span class="bg-${biz.color}-100 text-${biz.color}-800 text-xs px-2 py-1 rounded">Weekly: ${biz.weeklyComparison}</span>
@@ -926,7 +926,7 @@
                         <div class="flex justify-between items-center">
                             <div>
                                 <p class="text-gray-500">Total Income</p>
-                                <p class="text-2xl font-bold ${colorClass}">$${biz.income.toLocaleString()}</p>
+                                <p class="text-2xl font-bold ${colorClass}">Ksh${biz.income.toLocaleString()}</p>
                             </div>
                             <div class="${bgColorClass} p-3 rounded-full">
                                 <i class="fas fa-money-bill-wave ${colorClass} text-xl"></i>
@@ -939,7 +939,7 @@
                         <div class="flex justify-between items-center">
                             <div>
                                 <p class="text-gray-500">Net Profit</p>
-                                <p class="text-2xl font-bold text-green-600">$${biz.profit.toLocaleString()}</p>
+                                <p class="text-2xl font-bold text-green-600">Ksh${biz.profit.toLocaleString()}</p>
                             </div>
                             <div class="bg-green-100 p-3 rounded-full">
                                 <i class="fas fa-chart-line text-green-500 text-xl"></i>
@@ -952,7 +952,7 @@
                         <div class="flex justify-between items-center">
                             <div>
                                 <p class="text-gray-500">Losses</p>
-                                <p class="text-2xl font-bold text-red-600">$${biz.losses.toLocaleString()}</p>
+                                <p class="text-2xl font-bold text-red-600">Ksh${biz.losses.toLocaleString()}</p>
                             </div>
                             <div class="bg-red-100 p-3 rounded-full">
                                 <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
