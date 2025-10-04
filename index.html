@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/supabase@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .sidebar-link.active {
             background-color: #3b82f6;
@@ -30,28 +30,65 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
+        .auth-form {
+            transition: all 0.3s ease-in-out;
+        }
+        .hidden-form {
+            display: none;
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        .active-form {
+            display: block;
+            opacity: 1;
+            transform: translateX(0);
+        }
     </style>
 </head>
 <body class="bg-gray-50">
     <!-- Login Screen -->
-    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600 p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden">
+            <!-- Loading Spinner -->
+            <div id="loading-spinner" class="hidden absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold text-gray-800">Business Manager</h1>
-                <p class="text-gray-600 mt-2">Manage all your businesses in one place</p>
+                <p class="text-gray-600 mt-2">Manage TOPLINK, BENICK & KIM MELONS</p>
             </div>
-            <form id="login-form">
+
+            <!-- Toggle Buttons -->
+            <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+                <button id="login-tab" class="flex-1 py-2 px-4 rounded-md font-medium transition-colors bg-blue-500 text-white">
+                    Login
+                </button>
+                <button id="signup-tab" class="flex-1 py-2 px-4 rounded-md font-medium transition-colors text-gray-600 hover:text-gray-800">
+                    Sign Up
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active-form">
                 <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="login-email">
                         Email
                     </label>
-                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="email" type="email" placeholder="Email" required>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                           id="login-email" type="email" placeholder="your@email.com" required>
                 </div>
                 <div class="mb-6">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="login-password">
                         Password
                     </label>
-                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" id="password" type="password" placeholder="Password" required>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" 
+                           id="login-password" type="password" placeholder="Password" required>
+                </div>
+                <div class="flex items-center justify-between mb-4">
+                    <a href="#" id="forgot-password-link" class="text-sm text-blue-500 hover:text-blue-700">
+                        Forgot Password?
+                    </a>
                 </div>
                 <div class="flex items-center justify-between">
                     <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full" type="submit">
@@ -59,8 +96,62 @@
                     </button>
                 </div>
             </form>
+
+            <!-- Sign Up Form -->
+            <form id="signup-form" class="auth-form hidden-form">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="signup-name">
+                        Full Name
+                    </label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                           id="signup-name" type="text" placeholder="Your Name" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="signup-email">
+                        Email
+                    </label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                           id="signup-email" type="email" placeholder="your@email.com" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="signup-password">
+                        Password
+                    </label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" 
+                           id="signup-password" type="password" placeholder="Create a password" minlength="6" required>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full" type="submit">
+                        Create Account
+                    </button>
+                </div>
+            </form>
+
+            <!-- Forgot Password Form -->
+            <form id="forgot-password-form" class="auth-form hidden-form">
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="reset-email">
+                        Email Address
+                    </label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                           id="reset-email" type="email" placeholder="your@email.com" required>
+                    <p class="text-sm text-gray-600 mt-2">We'll send you a password reset link</p>
+                </div>
+                <div class="flex items-center justify-between space-x-4">
+                    <button type="button" id="back-to-login" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex-1">
+                        Back
+                    </button>
+                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex-1" type="submit">
+                        Send Reset Link
+                    </button>
+                </div>
+            </form>
+
+            <!-- Messages -->
+            <div id="auth-message" class="mt-4 p-3 rounded hidden"></div>
+
             <div class="mt-6 text-center text-sm text-gray-600">
-                <p>Demo: Use any email and password to login</p>
+                <p>Demo: Use any valid email and password to sign up</p>
             </div>
         </div>
     </div>
@@ -71,13 +162,13 @@
         <div class="fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-10">
             <div class="p-4 border-b">
                 <h1 class="text-xl font-bold text-gray-800">Business Manager</h1>
-                <p class="text-sm text-gray-600">Welcome back!</p>
+                <p class="text-sm text-gray-600" id="user-welcome">Welcome back!</p>
             </div>
             <div class="p-4">
                 <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Dashboard</h2>
                 <ul>
                     <li>
-                        <a href="#" class="sidebar-link block py-2 px-4 rounded mb-1 text-gray-700" data-page="main-dashboard">
+                        <a href="#" class="sidebar-link active block py-2 px-4 rounded mb-1 text-gray-700" data-page="main-dashboard">
                             <i class="fas fa-tachometer-alt mr-2"></i>Overall Dashboard
                         </a>
                     </li>
@@ -102,6 +193,20 @@
                     </li>
                 </ul>
                 
+                <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">Tools</h2>
+                <ul>
+                    <li>
+                        <a href="#" class="sidebar-link block py-2 px-4 rounded mb-1 text-gray-700" data-page="suppliers">
+                            <i class="fas fa-truck mr-2"></i>All Suppliers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link block py-2 px-4 rounded mb-1 text-gray-700" data-page="reports">
+                            <i class="fas fa-chart-bar mr-2"></i>Reports
+                        </a>
+                    </li>
+                </ul>
+                
                 <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">Account</h2>
                 <ul>
                     <li>
@@ -120,82 +225,284 @@
 
         <!-- Main Content -->
         <div class="ml-64 p-6">
-            <!-- Page Content will be dynamically loaded here -->
             <div id="page-content" class="fade-in">
-                <!-- Main Dashboard will be loaded by default -->
+                <!-- Main Dashboard will be loaded here by default -->
             </div>
         </div>
     </div>
 
     <script>
-        // Initialize Supabase (replace with your actual Supabase URL and key)
+        // Initialize Supabase - REPLACE WITH YOUR ACTUAL SUPABASE CREDENTIALS
         const supabaseUrl = 'https://your-project.supabase.co';
-        const supabaseKey = 'your-supabase-key';
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
-        // DOM Elements
-        const loginScreen = document.getElementById('login-screen');
-        const app = document.getElementById('app');
-        const loginForm = document.getElementById('login-form');
-        const logoutBtn = document.getElementById('logout-btn');
-        const pageContent = document.getElementById('page-content');
-        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const supabaseAnonKey = 'your-anon-key';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
         // Sample data for demonstration
         const businessData = {
             'toplink': {
                 name: 'TOPLINK SOLUTIONS',
                 color: 'blue',
-                income: 125000,
-                profit: 45000,
-                losses: 8000,
+                income: 125430,
+                profit: 45200,
+                losses: 8200,
+                dailyComparison: '+5.2%',
+                weeklyComparison: '+12.7%',
+                monthlyComparison: '+18.3%',
                 suppliers: [
-                    { name: 'Global Tech Inc', contact: 'john@globaltech.com', rating: 4.5 },
-                    { name: 'Component World', contact: 'sarah@compworld.com', rating: 4.2 },
-                    { name: 'Digital Solutions', contact: 'mike@digisolutions.com', rating: 4.7 }
-                ]
+                    { id: 1, name: 'Global Tech Inc', contact: 'john@globaltech.com', rating: 4.5, phone: '+1-555-0101' },
+                    { id: 2, name: 'Component World', contact: 'sarah@compworld.com', rating: 4.2, phone: '+1-555-0102' },
+                    { id: 3, name: 'Digital Solutions', contact: 'mike@digisolutions.com', rating: 4.7, phone: '+1-555-0103' },
+                    { id: 4, name: 'Tech Partners LLC', contact: 'anna@techpartners.com', rating: 4.4, phone: '+1-555-0104' }
+                ],
+                monthlyData: [12000, 19000, 15000, 25000, 22000, 30000, 28000, 32000, 29000, 35000, 33000, 38000],
+                previousYearData: [10000, 15000, 13000, 20000, 18000, 25000, 23000, 27000, 25000, 30000, 28000, 32000]
             },
             'benick': {
                 name: 'BENICK ACCESSORIES',
                 color: 'green',
-                income: 85000,
-                profit: 32000,
+                income: 85670,
+                profit: 32150,
                 losses: 5300,
+                dailyComparison: '+3.8%',
+                weeklyComparison: '+8.5%',
+                monthlyComparison: '+14.2%',
                 suppliers: [
-                    { name: 'Fashion Trends Ltd', contact: 'lisa@fashiontrends.com', rating: 4.3 },
-                    { name: 'Style Makers', contact: 'david@stylemakers.com', rating: 4.0 },
-                    { name: 'Accessory World', contact: 'emma@accessoryworld.com', rating: 4.6 }
-                ]
+                    { id: 1, name: 'Fashion Trends Ltd', contact: 'lisa@fashiontrends.com', rating: 4.3, phone: '+1-555-0201' },
+                    { id: 2, name: 'Style Makers', contact: 'david@stylemakers.com', rating: 4.0, phone: '+1-555-0202' },
+                    { id: 3, name: 'Accessory World', contact: 'emma@accessoryworld.com', rating: 4.6, phone: '+1-555-0203' },
+                    { id: 4, name: 'Trendsetters Inc', contact: 'james@trendsetters.com', rating: 4.1, phone: '+1-555-0204' }
+                ],
+                monthlyData: [8000, 12000, 10000, 15000, 18000, 20000, 19000, 22000, 21000, 24000, 23000, 25000],
+                previousYearData: [7000, 10000, 9000, 13000, 15000, 18000, 17000, 19000, 18000, 21000, 20000, 22000]
             },
             'kim': {
                 name: 'KIM MELONS',
                 color: 'purple',
-                income: 65000,
-                profit: 28000,
+                income: 65240,
+                profit: 28450,
                 losses: 4200,
+                dailyComparison: '+7.1%',
+                weeklyComparison: '+15.3%',
+                monthlyComparison: '+22.6%',
                 suppliers: [
-                    { name: 'Fresh Farms Co', contact: 'tom@freshfarms.com', rating: 4.8 },
-                    { name: 'Organic Harvest', contact: 'susan@organicharvest.com', rating: 4.4 },
-                    { name: 'Local Growers', contact: 'robert@localgrowers.com', rating: 4.1 }
-                ]
+                    { id: 1, name: 'Fresh Farms Co', contact: 'tom@freshfarms.com', rating: 4.8, phone: '+1-555-0301' },
+                    { id: 2, name: 'Organic Harvest', contact: 'susan@organicharvest.com', rating: 4.4, phone: '+1-555-0302' },
+                    { id: 3, name: 'Local Growers', contact: 'robert@localgrowers.com', rating: 4.1, phone: '+1-555-0303' },
+                    { id: 4, name: 'Farm Fresh Ltd', contact: 'maria@farmfresh.com', rating: 4.5, phone: '+1-555-0304' }
+                ],
+                monthlyData: [6000, 9000, 11000, 13000, 15000, 18000, 17000, 19000, 20000, 22000, 21000, 23000],
+                previousYearData: [5000, 7000, 9000, 11000, 13000, 15000, 14000, 16000, 17000, 19000, 18000, 20000]
             }
         };
 
-        // Login handler
-        loginForm.addEventListener('submit', (e) => {
+        // DOM Elements
+        const loginScreen = document.getElementById('login-screen');
+        const app = document.getElementById('app');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const authMessage = document.getElementById('auth-message');
+        const userWelcome = document.getElementById('user-welcome');
+        
+        // Auth elements
+        const loginTab = document.getElementById('login-tab');
+        const signupTab = document.getElementById('signup-tab');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const forgotPasswordForm = document.getElementById('forgot-password-form');
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+        const backToLogin = document.getElementById('back-to-login');
+        
+        const logoutBtn = document.getElementById('logout-btn');
+        const pageContent = document.getElementById('page-content');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+        // Auth state management
+        let currentUser = null;
+
+        // Show/hide forms
+        function showForm(formToShow) {
+            // Hide all forms
+            document.querySelectorAll('.auth-form').forEach(form => {
+                form.classList.remove('active-form');
+                form.classList.add('hidden-form');
+            });
+            
+            // Show target form
+            formToShow.classList.remove('hidden-form');
+            formToShow.classList.add('active-form');
+            
+            // Update tab styles
+            loginTab.classList.remove('bg-blue-500', 'text-white');
+            signupTab.classList.remove('bg-blue-500', 'text-white');
+            
+            if (formToShow === loginForm || formToShow === forgotPasswordForm) {
+                loginTab.classList.add('bg-blue-500', 'text-white');
+                signupTab.classList.add('text-gray-600', 'hover:text-gray-800');
+            } else {
+                signupTab.classList.add('bg-blue-500', 'text-white');
+                loginTab.classList.add('text-gray-600', 'hover:text-gray-800');
+            }
+            
+            // Clear messages
+            hideMessage();
+        }
+
+        // Show message
+        function showMessage(message, type = 'error') {
+            authMessage.textContent = message;
+            authMessage.className = `mt-4 p-3 rounded ${type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+            authMessage.classList.remove('hidden');
+        }
+
+        // Hide message
+        function hideMessage() {
+            authMessage.classList.add('hidden');
+        }
+
+        // Show loading
+        function showLoading() {
+            loadingSpinner.classList.remove('hidden');
+        }
+
+        // Hide loading
+        function hideLoading() {
+            loadingSpinner.classList.add('hidden');
+        }
+
+        // Auth event listeners
+        loginTab.addEventListener('click', () => showForm(loginForm));
+        signupTab.addEventListener('click', () => showForm(signupForm));
+        forgotPasswordLink.addEventListener('click', (e) => {
             e.preventDefault();
-            // In a real app, you would authenticate with Supabase here
-            // For demo purposes, we'll just show the app
-            loginScreen.classList.add('hidden');
-            app.classList.remove('hidden');
-            loadPage('main-dashboard');
+            showForm(forgotPasswordForm);
+        });
+        backToLogin.addEventListener('click', () => showForm(loginForm));
+
+        // Login handler
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            showLoading();
+            hideMessage();
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) throw error;
+                
+                currentUser = data.user;
+                showMessage('Login successful!', 'success');
+                setTimeout(() => {
+                    loginScreen.classList.add('hidden');
+                    app.classList.remove('hidden');
+                    userWelcome.textContent = `Welcome back, ${currentUser.email}!`;
+                    loadPage('main-dashboard');
+                }, 1000);
+                
+            } catch (error) {
+                showMessage(error.message);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Sign up handler
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            
+            showLoading();
+            hideMessage();
+            
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            full_name: name
+                        }
+                    }
+                });
+                
+                if (error) throw error;
+                
+                showMessage('Account created successfully! Please check your email for verification.', 'success');
+                setTimeout(() => showForm(loginForm), 3000);
+                
+            } catch (error) {
+                showMessage(error.message);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Forgot password handler
+        forgotPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('reset-email').value;
+            
+            showLoading();
+            hideMessage();
+            
+            try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/reset-password.html`,
+                });
+                
+                if (error) throw error;
+                
+                showMessage('Password reset link sent to your email!', 'success');
+                
+            } catch (error) {
+                showMessage(error.message);
+            } finally {
+                hideLoading();
+            }
         });
 
         // Logout handler
-        logoutBtn.addEventListener('click', () => {
-            app.classList.add('hidden');
-            loginScreen.classList.remove('hidden');
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                
+                app.classList.add('hidden');
+                loginScreen.classList.remove('hidden');
+                currentUser = null;
+                
+                // Reset forms
+                showForm(loginForm);
+                document.getElementById('login-email').value = '';
+                document.getElementById('login-password').value = '';
+                hideMessage();
+                
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
         });
+
+        // Check for existing session on page load
+        async function checkAuth() {
+            const { data } = await supabase.auth.getSession();
+            if (data.session) {
+                currentUser = data.session.user;
+                loginScreen.classList.add('hidden');
+                app.classList.remove('hidden');
+                userWelcome.textContent = `Welcome back, ${currentUser.email}!`;
+                loadPage('main-dashboard');
+            }
+        }
+
+        // Initialize auth check
+        checkAuth();
 
         // Sidebar navigation
         sidebarLinks.forEach(link => {
@@ -232,6 +539,12 @@
                     case 'kim-dashboard':
                         loadBusinessDashboard('kim');
                         break;
+                    case 'suppliers':
+                        loadAllSuppliers();
+                        break;
+                    case 'reports':
+                        loadReportsPage();
+                        break;
                     case 'profile':
                         loadProfilePage();
                         break;
@@ -240,7 +553,6 @@
                 }
             }, 10);
         }
-
         // Load main dashboard
         function loadMainDashboard() {
             pageContent.innerHTML = `
